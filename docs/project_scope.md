@@ -15,18 +15,25 @@ to the controller rather than the experimental setup.
 
 ## One-degree-of-freedom abstraction
 
-The proposed plant represents one actuated revolute lower-limb joint coupled to
-a simplified human limb or load. Its planned state includes joint angle and
-angular velocity, with configurable inertia, damping, stiffness, actuator
-limits, external disturbances, and a reference trajectory. The abstraction is
-intended to be simple enough for analysis while retaining the interaction and
-constraint questions relevant to assistive control.
+The implemented mathematical plant represents one actuated revolute lower-limb
+joint coupled to a simplified distal mass. Its state contains joint angle and
+angular velocity. Configurable constant parameters represent inertia, mass,
+centre-of-mass distance, gravity, viscous damping, passive stiffness, and a
+passive rest angle. Human, assistive, and disturbance torques are explicit
+inputs.
 
-The exact equations, parameter ranges, actuator model, and simulator have not
-yet been selected. Those choices must be documented and tested before control
-results are reported.
+The scalar model uses the standard library and semi-implicit Euler integration.
+Its governing equation, sign convention, assumptions, validation rules, and SI
+units are defined in [the model documentation](one_dof_model.md). Selection of
+an external simulator, reference trajectories, actuator dynamics, and parameter
+ranges for comparative experiments remain future decisions.
 
 ## Target inputs and outputs
+
+The implemented plant inputs are a joint state, human torque, assistive torque,
+disturbance torque, and an explicit positive fixed time step. It outputs angular
+acceleration or a new joint state for one integration step. The input state is
+immutable and is not modified by stepping.
 
 Planned controller inputs include:
 
@@ -36,9 +43,9 @@ Planned controller inputs include:
 - actuator state and configured torque and torque-rate limits; and
 - optional model parameters, uncertainty descriptors, or disturbance estimates.
 
-The primary controller output is a commanded assistive joint torque. The safety
-supervisor may constrain, filter, replace, or reject that command before it is
-applied to the plant. Experiments will output time-series logs, aggregate
+The future primary controller output is a commanded assistive joint torque. The
+safety supervisor may constrain, filter, replace, or reject that command before
+it is applied to the plant. Experiments will output time-series logs, aggregate
 metrics, constraint events, configuration metadata, and reproducibility data
 such as random seeds and software versions.
 
@@ -85,7 +92,8 @@ before comparative experiments. No benchmark results currently exist.
 
 ## Safety constraints
 
-The planned evaluation will define and monitor:
+The model deliberately implements no automatic joint limits or torque
+saturation. A future safety layer will define and monitor:
 
 - joint position and velocity bounds;
 - actuator torque and torque-rate limits;
@@ -128,12 +136,13 @@ The project does not currently pursue:
 
 ## Phased milestones
 
-1. **Project foundation:** packaging, documentation, automated quality checks,
-   and continuous integration.
-2. **Plant specification:** equations, parameters, units, reference signals,
-   disturbances, constraints, and simulator decision.
-3. **Deterministic simulation:** tested plant, observation, actuation, logging,
-   and metric interfaces.
+1. **Project foundation — complete:** packaging, documentation, automated
+   quality checks, and continuous integration.
+2. **Deterministic plant model — complete:** governing scalar equation,
+   parameters, SI units, torque inputs, validation, fixed-step integration, and
+   behavior tests.
+3. **Experiment interfaces:** reference signals, scenario configuration,
+   observation, logging, and metric interfaces.
 4. **Baseline control:** impedance and model-based controllers with unit and
    scenario tests.
 5. **Safety supervision:** command limiting, fallback behavior, termination,
@@ -144,4 +153,3 @@ The project does not currently pursue:
    with transparent reports and ablations.
 8. **Sim-to-real assessment:** decide whether evidence justifies an isolated,
    non-human bench experiment and document the transfer risks and protocol.
-

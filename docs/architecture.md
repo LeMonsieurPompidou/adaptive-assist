@@ -1,8 +1,10 @@
 # Planned Architecture
 
-This document describes the intended system decomposition. Except for the
-small package entry point and development tooling listed under "Currently
-implemented," these modules are plans rather than working software.
+This document describes the intended system decomposition. The deterministic
+one-degree-of-freedom mathematical plant and the foundation tooling listed under
+"Currently implemented" are working software. State estimation, controllers,
+safety supervision, learning, experiment logging, external simulation, and
+hardware integration remain planned.
 
 ## System flow
 
@@ -32,11 +34,16 @@ owns the final command boundary; the learned policy does not bypass it.
 
 ### Plant and sensing
 
-The simulated plant will implement the selected one-degree-of-freedom dynamics,
-actuation, interaction model, integration, and disturbances. A later physical
-plant adapter may expose the same interface for an isolated bench apparatus.
-Sensor adapters will provide timestamped state data without exposing hardware
-details to controllers.
+The implemented scalar plant provides validated one-degree-of-freedom dynamics,
+human, assistive, and disturbance torque inputs, and deterministic
+semi-implicit Euler integration. It has no controller, joint-limit, or actuator
+saturation decisions. Its API and limitations are documented in
+[the model specification](one_dof_model.md).
+
+External simulator and future physical-plant adapters remain planned. They may
+expose a compatible plant-facing interface for comparison with the scalar
+reference model. Planned sensor adapters will provide timestamped state data
+without exposing hardware details to controllers.
 
 ### State estimation
 
@@ -74,14 +81,17 @@ Metric calculation will be versioned and kept separate from controller logic.
 
 The repository currently contains only:
 
-- the typed `adaptive_assist` package and a status-reporting module entry point;
+- the typed `adaptive_assist` package and status-reporting module entry point;
+- the validated deterministic 1-DOF mathematical plant and integration step;
+- physical-behavior tests and a constant-torque mathematical demonstration;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
-- foundation tests and continuous integration; and
-- scope, architecture, and decision-record documentation.
+- continuous integration; and
+- model, scope, architecture, and decision-record documentation.
 
-There is no plant model, sensor interface, estimator, controller, policy, safety
-supervisor, experiment logger, ROS 2 integration, or hardware interface yet.
+There is no sensor interface, estimator, controller, policy, safety supervisor,
+experiment logger, external simulator integration, ROS 2 integration, or
+hardware interface yet.
 
 ## Intended design boundaries
 
@@ -97,4 +107,3 @@ supervisor, experiment logger, ROS 2 integration, or hardware interface yet.
 
 These boundaries are provisional and may change through documented Architecture
 Decision Records.
-

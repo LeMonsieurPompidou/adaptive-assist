@@ -38,4 +38,5 @@ def test_module_entry_point() -> None:
 
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == FOUNDATION_MESSAGE
-    assert "simulation has not yet been implemented" in result.stdout
+    assert "deterministic 1-DOF joint model" in result.stdout
+    assert "controllers and safety supervision are not yet implemented" in result.stdout

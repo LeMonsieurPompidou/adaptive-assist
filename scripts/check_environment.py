@@ -17,12 +17,18 @@ EXPECTED_FILES = (
     "configs/README.md",
     "pyproject.toml",
     "docs/architecture.md",
+    "docs/decisions/0001-simulator-independent-one-dof-model.md",
     "docs/decisions/README.md",
+    "docs/one_dof_model.md",
     "docs/project_scope.md",
+    "scripts/run_free_joint_demo.py",
     "src/adaptive_assist/__init__.py",
     "src/adaptive_assist/__main__.py",
+    "src/adaptive_assist/dynamics/__init__.py",
+    "src/adaptive_assist/dynamics/joint.py",
     "src/adaptive_assist/main.py",
     "src/adaptive_assist/py.typed",
+    "tests/test_joint_dynamics.py",
     "tests/test_package.py",
 )
 

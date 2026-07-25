@@ -1,6 +1,6 @@
-"""Public package API for adaptive-assist."""
+"""Public dynamics API for the deterministic one-degree-of-freedom model."""
 
-from adaptive_assist.dynamics import (
+from adaptive_assist.dynamics.joint import (
     JointParameters,
     JointState,
     JointTorques,
@@ -12,7 +12,4 @@ __all__ = [
     "JointState",
     "JointTorques",
     "OneDofJointModel",
-    "__version__",
 ]
-
-__version__ = "0.1.0"

@@ -1,8 +1,8 @@
-"""Command-line entry point for the project foundation."""
+"""Command-line entry point for the current project status."""
 
 FOUNDATION_MESSAGE = (
-    "adaptive-assist project foundation is installed; "
-    "the simulation has not yet been implemented."
+    "adaptive-assist includes a deterministic 1-DOF joint model; "
+    "controllers and safety supervision are not yet implemented."
 )
 
 
