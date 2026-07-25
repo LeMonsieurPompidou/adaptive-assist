@@ -3,9 +3,10 @@
 Safe learning-based control and sim-to-real evaluation for a simplified
 assistive robotics joint.
 
-> **Project status: Work in progress** — the repository currently provides the
-> project foundation only; no physical simulation, controller, learned policy,
-> ROS 2 interface, or hardware interface has been implemented.
+> **Project status: Work in progress** — a deterministic, simulator-independent
+> one-degree-of-freedom mathematical joint model is implemented. Controllers,
+> safety supervision, learned policies, external simulation, ROS 2, and hardware
+> interfaces remain planned.
 
 ## Motivation
 
@@ -49,8 +50,10 @@ their presence alone would not establish safety for people.
 ## Planned technical stack
 
 - **Language and tooling:** Python 3.11+, pytest, Ruff, and mypy (implemented).
-- **Dynamics simulation:** undecided; MuJoCo and other options will be evaluated
-  in an Architecture Decision Record (tentative).
+- **Joint dynamics:** a scalar standard-library 1-DOF model with semi-implicit
+  Euler integration is implemented.
+- **External dynamics simulation:** undecided; MuJoCo and other options will be
+  evaluated in a future Architecture Decision Record (tentative).
 - **Reinforcement learning:** framework and algorithm undecided (tentative).
 - **Experiment tracking:** tool undecided; reproducible file-based logging may
   be used first (tentative).
@@ -64,21 +67,24 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At this foundation stage, the repository provides:
+At this first technical milestone, the repository provides:
 
 - an installable, typed Python `src`-layout package;
-- a module entry point that reports the current implementation status;
+- a validated deterministic 1-DOF rotational joint model using SI units;
+- gravity, passive-torque, applied-torque, acceleration, and semi-implicit Euler
+  step APIs;
+- a lightweight constant-torque mathematical demonstration;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
-- project scope, planned architecture, and decision-record documentation.
+- model, scope, planned architecture, and decision-record documentation.
 
 ## Roadmap
 
-1. **Foundation:** package structure, engineering documentation, quality gates,
-   and CI.
-2. **Simulation:** define equations, parameters, reference trajectories,
-   disturbances, and a deterministic one-degree-of-freedom environment.
+1. **Foundation — complete:** package structure, engineering documentation,
+   quality gates, and CI.
+2. **Deterministic joint model — complete:** validated scalar equations,
+   fixed-step integration, unit tests, and a mathematical demonstration.
 3. **Classical baselines:** implement and test impedance and model-based
    controllers.
 4. **Safety layer:** implement constraints, action filtering, fallback behavior,
@@ -120,6 +126,7 @@ Confirm the current package state:
 ```bash
 python -m adaptive_assist
 python scripts/check_environment.py
+python scripts/run_free_joint_demo.py
 ```
 
 ## Development and validation
@@ -147,8 +154,8 @@ adaptive-assist/
 ├── assets/                     # Documentation media
 ├── configs/                    # Future experiment configuration
 ├── docs/                       # Scope, architecture, and decision records
-├── scripts/check_environment.py
-├── src/adaptive_assist/        # Installable package
+├── scripts/                     # Environment check and mathematical demo
+├── src/adaptive_assist/        # Package and deterministic dynamics model
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration

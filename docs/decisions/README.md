@@ -14,6 +14,9 @@ Likely ADR topics include:
 - experiment-tracking tool; and
 - sim-to-real strategy.
 
-No ADR has been accepted yet. Adding a major dependency or committing to one of
-these technologies should be accompanied by an ADR.
+Accepted records:
 
+- [ADR 0001: Simulator-independent one-DOF plant model](0001-simulator-independent-one-dof-model.md)
+
+Adding a major dependency or committing to another listed technology should be
+accompanied by an ADR.
