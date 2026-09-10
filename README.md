@@ -129,6 +129,11 @@ python scripts/check_environment.py
 python scripts/run_free_joint_demo.py
 ```
 
+## Documentation
+
+For a code-oriented tour of the repository, see the
+[developer reading guide](docs/developer_guide.md).
+
 ## Development and validation
 
 Run the complete local quality suite from the repository root:
