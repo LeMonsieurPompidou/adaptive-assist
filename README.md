@@ -4,9 +4,10 @@ Safe learning-based control and sim-to-real evaluation for a simplified
 assistive robotics joint.
 
 > **Project status: Work in progress** — a deterministic, simulator-independent
-> one-degree-of-freedom mathematical joint model and open-loop experiment
-> framework are implemented. Controllers, safety supervision, learned policies,
-> external simulation, ROS 2, and hardware interfaces remain planned.
+> one-degree-of-freedom mathematical joint model, experiment framework, and
+> impedance-controller baseline are implemented. Model-based control, safety
+> supervision, learned policies, external simulation, ROS 2, and hardware
+> interfaces remain planned.
 
 ## Motivation
 
@@ -28,15 +29,15 @@ The project is intended to:
 - define a staged sim-to-real evaluation process; and
 - document engineering decisions and limitations clearly.
 
-### Planned controller comparison
+### Controller comparison roadmap
 
-| Controller | Planned role | Status |
+| Controller | Role | Status |
 | --- | --- | --- |
-| Classical impedance controller | Interpretable baseline with tunable compliance | Planned |
+| Classical impedance controller | Interpretable baseline with tunable compliance | Implemented |
 | Model-based controller | Dynamics-aware reference for performance and robustness | Planned |
 | Safe hybrid residual RL controller | Learned bounded correction on top of a baseline controller | Planned |
 
-No controller in this table is implemented yet.
+Only the unsaturated impedance-controller baseline is currently implemented.
 
 ## Safety positioning
 
@@ -69,7 +70,7 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At the current experiment-interface milestone, the repository provides:
+At the current impedance-controller milestone, the repository provides:
 
 - an installable, typed Python `src`-layout package;
 - a validated deterministic 1-DOF rotational joint model using SI units;
@@ -80,6 +81,10 @@ At the current experiment-interface milestone, the repository provides:
   sinusoidal references;
 - deterministic experiment records and metadata, explicit CSV export,
   trajectory-tracking RMSE, and peak-assistive-torque metrics;
+- a typed proportional-derivative impedance controller that produces requested
+  assistive torque without saturation or safety filtering;
+- deterministic closed-loop execution and an equivalent-conditions comparison
+  with zero-assistance open-loop operation;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
@@ -93,8 +98,8 @@ At the current experiment-interface milestone, the repository provides:
    fixed-step integration, unit tests, and a mathematical demonstration.
 3. **Experiment interfaces — complete:** reference signals, versioned scenarios,
    deterministic execution, records, CSV logging, and initial metrics.
-4. **Classical baselines:** implement and test impedance and model-based
-   controllers.
+4. **Classical baselines — partially complete:** the impedance controller is
+   implemented; model-based control remains planned.
 5. **Safety layer:** implement constraints, action filtering, fallback behavior,
    and violation reporting.
 6. **Residual learning:** train bounded residual policies and compare them with
@@ -136,6 +141,8 @@ python -m adaptive_assist
 python scripts/check_environment.py
 python scripts/run_free_joint_demo.py
 python scripts/run_open_loop_experiment.py
+python scripts/run_impedance_experiment.py
+python scripts/compare_open_loop_impedance.py
 ```
 
 ## Documentation
@@ -144,6 +151,8 @@ For a code-oriented tour of the repository, see the
 [developer reading guide](docs/developer_guide.md).
 The [experiment framework guide](docs/experiment_framework.md) documents the
 scenario schema, execution records, CSV format, metrics, and boundaries.
+The [impedance controller guide](docs/impedance_controller.md) documents the
+implemented feedback law, gains, closed-loop flow, and safety boundary.
 
 ## Development and validation
 
@@ -168,10 +177,10 @@ python -m ruff format .
 adaptive-assist/
 ├── .github/workflows/ci.yml    # Continuous integration
 ├── assets/                     # Documentation media
-├── configs/                    # Version-controlled experiment scenarios
+├── configs/                    # Version-controlled scenarios and controller gains
 ├── docs/                       # Scope, architecture, and decision records
 ├── scripts/                     # Environment check and runnable demonstrations
-├── src/adaptive_assist/        # Dynamics and experiment interfaces
+├── src/adaptive_assist/        # Dynamics, experiments, and impedance controller
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration

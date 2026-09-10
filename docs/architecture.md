@@ -2,10 +2,10 @@
 
 This document describes the intended system decomposition. The deterministic
 one-degree-of-freedom mathematical plant, deterministic open-loop experiment
-framework, and foundation tooling listed under "Currently implemented" are
-working software. State estimation, controllers, safety supervision, learning,
-broader experiment tracking, external simulation, and hardware integration
-remain planned.
+framework, impedance controller, and foundation tooling listed under "Currently
+implemented" are working software. State estimation, model-based control,
+safety supervision, learning, broader experiment tracking, external simulation,
+and hardware integration remain planned.
 
 ## Implemented open-loop flow
 
@@ -26,7 +26,34 @@ flowchart LR
 This implemented path is deterministic and open loop. It contains no controller
 or safety supervisor.
 
-## System flow
+## Implemented impedance closed-loop flow
+
+```mermaid
+flowchart LR
+    A[JSON scenario] --> B[ReferenceSignal]
+    B --> C[JointReference]
+    D[Current JointState] --> E[ImpedanceController]
+    C --> E
+    E --> F[ControllerOutput<br/>requested assistive torque]
+    F --> G[Direct pass-through<br/>no safety supervisor]
+    A --> H[Human and disturbance torques]
+    G --> I[JointTorques<br/>applied plant inputs]
+    H --> I
+    I --> J[1-DOF mathematical plant]
+    D --> J
+    J --> K[ExperimentSample]
+    C --> K
+    I --> K
+    J --> D
+    K --> L[ExperimentResult]
+    L --> M[CSV and metrics]
+```
+
+The controller request currently passes directly to the plant and is recorded
+as applied assistive torque. This is an explicit temporary equality, not safety
+supervision or a safety claim.
+
+## Planned full system flow
 
 ```mermaid
 flowchart LR
@@ -50,7 +77,7 @@ pass-through mode will allow classical controllers to use the same downstream
 safety and evaluation path without a learned correction. The safety supervisor
 owns the final command boundary; the learned policy does not bypass it.
 
-## Planned modules
+## Implemented and planned modules
 
 ### Plant and sensing
 
@@ -73,9 +100,11 @@ interaction-torque estimation, and explicit handling of stale or invalid data.
 
 ### Baseline controllers
 
-Baseline controllers will share a typed interface and produce both a requested
-torque and diagnostic data. The first planned implementations are an impedance
-controller and a model-based controller.
+The implemented `JointController` interface maps state and reference to a typed
+requested assistive torque. `ImpedanceController` implements proportional
+position-error and derivative velocity-error feedback with version-controlled
+gains. It contains no saturation or safety logic. A model-based controller
+remains planned and can later implement the same small interface.
 
 ### Residual learned policy
 
@@ -93,10 +122,11 @@ training, simulation evaluation, and any future bench evaluation.
 
 ### Logging and evaluation
 
-The implemented open-loop experiment layer records actual state, reference,
-predefined torques, plant acceleration, scenario identity, and deterministic
-execution metadata. It provides explicit standard-library CSV export plus
-tracking RMSE and peak assistive torque outside controller logic.
+The implemented experiment layer records actual state, reference, applied
+torques, plant acceleration, scenario identity, and deterministic execution
+metadata for open- and closed-loop runs. It provides explicit standard-library
+CSV export plus tracking RMSE and peak assistive torque outside controller
+logic.
 
 State estimates, controller components, safety events, richer provenance,
 additional metrics, and an experiment-tracking service remain planned.
@@ -112,19 +142,23 @@ The repository currently contains only:
 - deterministic open-loop execution, immutable records, optional CSV export,
   and initial controller-independent metrics;
 - an open-loop experiment demonstration;
+- a deterministic impedance controller, strict gain configuration, closed-loop
+  runner, engineering demonstration, and open-loop comparison;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and
 - model, scope, architecture, and decision-record documentation.
 
-There is no sensor interface, estimator, controller, policy, safety supervisor,
-external simulator integration, ROS 2 integration, hardware interface, or
-experiment-tracking service yet.
+There is no sensor interface, estimator, model-based controller, learned policy,
+safety supervisor, external simulator integration, ROS 2 integration, hardware
+interface, or experiment-tracking service yet.
 
 ## Intended design boundaries
 
 - Controllers should depend on typed state and reference interfaces, not on a
   particular simulator or hardware API.
+- Controller-requested torque should remain distinct from the final applied
+  torque boundary owned by future safety supervision.
 - The safety supervisor should remain independently testable and independent of
   reinforcement-learning framework internals.
 - Simulation and future physical adapters should implement a common plant-facing

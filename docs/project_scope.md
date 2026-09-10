@@ -8,10 +8,11 @@ state. The engineering challenge is to compare controllers fairly when the
 plant model is uncertain, disturbances occur, and a learned policy can improve
 performance only if its authority is constrained.
 
-The implemented foundation provides a reproducible open-loop execution and
-evaluation methodology, not a complete wearable robot. Future controllers can
-reuse consistent references, records, metrics, and test scenarios so that
-differences can be traced to the controller rather than the experimental setup.
+The implemented foundation provides reproducible open- and closed-loop
+execution and evaluation methodology, not a complete wearable robot. The first
+impedance baseline reuses consistent references, records, metrics, and test
+scenarios so experimental differences can be traced to assistive-torque
+generation rather than the surrounding infrastructure.
 
 ## One-degree-of-freedom abstraction
 
@@ -42,7 +43,8 @@ metadata. It can explicitly export samples to CSV and currently calculates
 tracking RMSE and peak assistive torque. These are infrastructure metrics, not
 controller benchmark results.
 
-Planned controller inputs include:
+The implemented impedance-controller inputs are desired and actual joint angle
+and angular velocity. Future controller inputs may additionally include:
 
 - desired joint position and, where applicable, velocity and acceleration;
 - measured or simulated joint position and velocity;
@@ -50,20 +52,23 @@ Planned controller inputs include:
 - actuator state and configured torque and torque-rate limits; and
 - optional model parameters, uncertainty descriptors, or disturbance estimates.
 
-The future primary controller output is a commanded assistive joint torque. The
-safety supervisor may constrain, filter, replace, or reject that command before
-it is applied to the plant. Current experiments output in-memory time-series
-samples, basic deterministic metadata, optional CSV, and two metrics. Constraint
-events, richer metadata, random-seed reporting when randomness exists, and
-software-version provenance remain planned.
+The implemented controller output is requested assistive joint torque. With no
+safety supervisor implemented, the closed-loop runner currently passes that
+request directly to the plant as applied assistive torque. A future supervisor
+may constrain, filter, replace, or reject the request before it is applied.
+Current experiments output in-memory time-series samples, basic deterministic
+metadata, optional CSV, and two metrics. Constraint events, richer metadata,
+random-seed reporting when randomness exists, and software-version provenance
+remain planned.
 
-## Planned controllers
+## Controller status
 
-### Classical impedance controller
+### Classical impedance controller — implemented
 
-An impedance controller will provide an interpretable baseline by mapping
-position and velocity tracking errors to an assistive torque. Its gains and
-limits will be explicit and version controlled.
+The impedance controller provides an interpretable baseline by mapping position
+and velocity tracking errors to a requested assistive torque. Its non-negative
+proportional and derivative gains are explicit and version controlled. It has
+no saturation, actuator limit, or safety function.
 
 ### Model-based controller
 
@@ -85,18 +90,21 @@ compared with, not substituted for, the classical baselines.
 
 The initial evaluation protocol will include:
 
-- **trajectory tracking RMSE:** root-mean-square joint position error;
+- **trajectory tracking RMSE:** root-mean-square joint position error
+  (implemented);
 - **estimated human effort:** a defined proxy based on the interaction model;
 - **actuator energy:** a consistent integral based on torque and joint motion;
-- **peak torque:** maximum absolute applied actuator torque;
+- **peak torque:** maximum absolute applied assistive torque (implemented);
 - **torque-rate smoothness:** a measure of rapid torque changes or jerk-like
   behavior;
 - **constraint violations:** counts, magnitudes, and durations by constraint;
 - **robustness:** degradation under parameter variations and disturbances; and
 - **repeatability:** variation across controlled random seeds where applicable.
 
-Metric definitions, units, sampling rules, and aggregation methods must be fixed
-before comparative experiments. No benchmark results currently exist.
+The two implemented metrics have fixed code-level definitions and are used by
+the current engineering comparison. Definitions, units, sampling rules, and
+aggregation methods for remaining metrics must be fixed before formal
+benchmarks. Current demonstration outputs are not benchmark results.
 
 ## Safety constraints
 
@@ -152,8 +160,9 @@ The project does not currently pursue:
 3. **Experiment interfaces — complete:** constant and sinusoidal reference
    signals, strict JSON scenarios, deterministic open-loop execution, immutable
    records, CSV logging, and initial metrics.
-4. **Baseline control:** impedance and model-based controllers with unit and
-   scenario tests.
+4. **Baseline control — partially complete:** deterministic impedance control,
+   closed-loop execution, and comparison are implemented; model-based control
+   remains planned.
 5. **Safety supervision:** command limiting, fallback behavior, termination,
    and fault-injection tests.
 6. **Residual learning:** bounded residual-policy training and evaluation with

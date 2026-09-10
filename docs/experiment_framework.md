@@ -2,24 +2,26 @@
 
 ## Purpose and boundaries
 
-The experiment layer runs reproducible open-loop scenarios against the existing
-simulator-independent 1-DOF plant. It owns scenario parsing, reference signals,
-fixed-step orchestration, immutable records, CSV export, and metrics.
+The experiment layer runs reproducible open- and closed-loop scenarios against
+the existing simulator-independent 1-DOF plant. It owns scenario parsing,
+reference signals, fixed-step orchestration, immutable records, CSV export, and
+metrics.
 
 The boundaries are deliberate:
 
 ```text
 Plant:                state + torques -> next state
 Experiment framework: configuration + execution + records + metrics
-Controller:           not implemented
+Controller:           state + reference -> requested assistive torque
 Safety supervisor:    not implemented
 ```
 
-The configured human, assistive, and disturbance torques are predefined
-open-loop inputs. No component calculates feedback torque, filters actions,
-enforces joint limits, or saturates torque.
+Open-loop experiments use all three configured torques directly. Closed-loop
+experiments preserve configured human and disturbance torques while replacing
+configured assistive torque with the impedance controller's request. No
+component filters actions, enforces joint limits, or saturates torque.
 
-## Implemented flow
+## Implemented open-loop flow
 
 ```mermaid
 flowchart TD
@@ -112,6 +114,8 @@ The repository's nominal scenario is
 Its numerical values are illustrative inputs chosen to exercise the deterministic
 experiment pipeline. They are not identified biomechanical parameters, a model
 of a particular person or device, or evidence of physical or medical validation.
+`configs/scenarios/nominal_tracking.json` uses the same schema and provides two
+sinusoidal cycles for the implemented impedance demonstration and comparison.
 
 ## Fixed-step execution and records
 
@@ -127,6 +131,18 @@ zero through the configured duration, it:
 
 A scenario with `N` integration steps produces `N + 1` samples, including the
 initial state at `0` and final state at `duration_s`.
+
+`run_closed_loop_experiment()` uses the same private sampling loop and timestamp
+rules. At every sample it evaluates the reference, calls
+`controller.compute(state, reference)`, constructs `JointTorques` from the
+configured human/disturbance torques and requested assistive torque, then
+records and advances the same public plant API. Controller evaluation also
+occurs at the final recorded sample, but no integration follows that sample.
+
+The controller's `ControllerOutput` is conceptually separate from the applied
+`JointTorques`. They are numerically equal for assistive torque only because the
+future safety-supervision layer does not exist yet. See
+[the impedance controller guide](impedance_controller.md).
 
 Each immutable `ExperimentSample` stores time, actual state, reference,
 applied torques, and plant-computed acceleration. `ExperimentResult` stores the
@@ -164,21 +180,22 @@ remain planned.
 The framework uses no random values, timestamps, UUIDs, external simulator, or
 global mutable state. Sample times derive from integer step indices rather than
 repeated time accumulation. Immutable inputs and records prevent accidental
-in-place changes. With identical code, scenario configuration, and Python
-environment, repeated runs produce equal `ExperimentResult` values.
+in-place changes. The impedance controller is stateless and deterministic. With
+identical code, scenario and controller configuration, and Python environment,
+repeated runs produce equal `ExperimentResult` values.
 
-## Future controller connection
+## Controller and future safety connection
 
-A future controller can reuse the reference, records, CSV writer, and metrics.
-Its intended connection point is torque production before the plant acceleration
-and step calls: it would consume the current state and reference and provide an
-assistive torque. That interface and a controller-aware runner do not exist yet.
-Future safety logic must remain a separate command boundary rather than being
-embedded in the plant or current open-loop configuration loader.
+The implemented impedance controller reuses the reference, records, CSV writer,
+and metrics through `run_closed_loop_experiment()`. A future model-based
+controller can implement the same `JointController` protocol. Future safety
+logic belongs between `ControllerOutput` and the construction of applied
+`JointTorques`; it must not be embedded in the plant or scenario loader.
 
 ## Limitations
 
-- Torque inputs are constant and predefined; there is no feedback control.
+- Open-loop torque inputs are constant and predefined; closed-loop feedback is
+  limited to the impedance controller.
 - Only constant and sinusoidal references are supported.
 - Only JSON schema version 1 is supported.
 - Execution is scalar and in memory; there is no streaming or batch runner.

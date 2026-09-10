@@ -9,7 +9,7 @@ from adaptive_assist.experiments.reference import JointReference
 
 @dataclass(frozen=True, slots=True)
 class ExperimentSample:
-    """One timestamped observation from an open-loop experiment."""
+    """One timestamped observation from an experiment."""
 
     time_s: float
     actual_state: JointState
