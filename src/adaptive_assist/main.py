@@ -1,8 +1,9 @@
 """Command-line entry point for the current project status."""
 
 FOUNDATION_MESSAGE = (
-    "adaptive-assist includes a deterministic 1-DOF joint model; "
-    "controllers and safety supervision are not yet implemented."
+    "adaptive-assist includes a deterministic 1-DOF joint model and open-loop "
+    "experiment interfaces; controllers and safety supervision are not yet "
+    "implemented."
 )
 
 

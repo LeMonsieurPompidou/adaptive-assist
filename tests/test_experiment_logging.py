@@ -1,0 +1,46 @@
+"""Tests for explicit experiment CSV export."""
+
+import csv
+from pathlib import Path
+
+import pytest
+
+from adaptive_assist import JointParameters, JointState, JointTorques, OneDofJointModel
+from adaptive_assist.experiments import (
+    CSV_COLUMNS,
+    SCENARIO_SCHEMA_VERSION,
+    ConstantReference,
+    JointReference,
+    ScenarioConfig,
+    run_open_loop_experiment,
+    write_experiment_csv,
+)
+
+
+def test_csv_contains_expected_headers_rows_and_values(tmp_path: Path) -> None:
+    parameters = JointParameters(2.0, 0.0, 0.0, 9.81, 0.0, 0.0, 0.0)
+    scenario = ScenarioConfig(
+        schema_version=SCENARIO_SCHEMA_VERSION,
+        scenario_name="csv_test",
+        duration_s=0.2,
+        time_step_s=0.1,
+        initial_state=JointState(0.0, 0.0),
+        joint_parameters=parameters,
+        reference=ConstantReference(JointReference(0.25, 0.0, 0.0)),
+        torques=JointTorques(assistive_torque_n_m=2.0),
+    )
+    result = run_open_loop_experiment(scenario, OneDofJointModel(parameters))
+    output_path = tmp_path / "experiment.csv"
+
+    returned_path = write_experiment_csv(result, output_path)
+
+    assert returned_path == output_path
+    assert output_path.is_file()
+    with output_path.open(encoding="utf-8", newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+    assert len(rows) == len(result.samples)
+    assert tuple(rows[0]) == CSV_COLUMNS
+    assert float(rows[0]["time_s"]) == pytest.approx(0.0)
+    assert float(rows[0]["reference_angle_rad"]) == pytest.approx(0.25)
+    assert float(rows[0]["assistive_torque_n_m"]) == pytest.approx(2.0)
+    assert float(rows[1]["actual_angle_rad"]) == pytest.approx(0.01)

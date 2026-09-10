@@ -4,9 +4,9 @@ Safe learning-based control and sim-to-real evaluation for a simplified
 assistive robotics joint.
 
 > **Project status: Work in progress** — a deterministic, simulator-independent
-> one-degree-of-freedom mathematical joint model is implemented. Controllers,
-> safety supervision, learned policies, external simulation, ROS 2, and hardware
-> interfaces remain planned.
+> one-degree-of-freedom mathematical joint model and open-loop experiment
+> framework are implemented. Controllers, safety supervision, learned policies,
+> external simulation, ROS 2, and hardware interfaces remain planned.
 
 ## Motivation
 
@@ -52,11 +52,13 @@ their presence alone would not establish safety for people.
 - **Language and tooling:** Python 3.11+, pytest, Ruff, and mypy (implemented).
 - **Joint dynamics:** a scalar standard-library 1-DOF model with semi-implicit
   Euler integration is implemented.
+- **Experiment infrastructure:** typed fixed-step scenarios, JSON configuration,
+  immutable records, CSV export, and initial metrics are implemented.
 - **External dynamics simulation:** undecided; MuJoCo and other options will be
   evaluated in a future Architecture Decision Record (tentative).
 - **Reinforcement learning:** framework and algorithm undecided (tentative).
-- **Experiment tracking:** tool undecided; reproducible file-based logging may
-  be used first (tentative).
+- **Experiment tracking:** explicit standard-library CSV export is implemented;
+  any broader tracking tool remains undecided (tentative).
 - **Robotics integration:** ROS 2 may be introduced in a later phase
   (tentative).
 - **Hardware:** a non-human-worn one-degree-of-freedom bench setup may be
@@ -67,13 +69,17 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At this first technical milestone, the repository provides:
+At the current experiment-interface milestone, the repository provides:
 
 - an installable, typed Python `src`-layout package;
 - a validated deterministic 1-DOF rotational joint model using SI units;
 - gravity, passive-torque, applied-torque, acceleration, and semi-implicit Euler
   step APIs;
 - a lightweight constant-torque mathematical demonstration;
+- version-controlled constant-torque open-loop scenarios with constant or
+  sinusoidal references;
+- deterministic experiment records and metadata, explicit CSV export,
+  trajectory-tracking RMSE, and peak-assistive-torque metrics;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
@@ -85,15 +91,17 @@ At this first technical milestone, the repository provides:
    quality gates, and CI.
 2. **Deterministic joint model — complete:** validated scalar equations,
    fixed-step integration, unit tests, and a mathematical demonstration.
-3. **Classical baselines:** implement and test impedance and model-based
+3. **Experiment interfaces — complete:** reference signals, versioned scenarios,
+   deterministic execution, records, CSV logging, and initial metrics.
+4. **Classical baselines:** implement and test impedance and model-based
    controllers.
-4. **Safety layer:** implement constraints, action filtering, fallback behavior,
+5. **Safety layer:** implement constraints, action filtering, fallback behavior,
    and violation reporting.
-5. **Residual learning:** train bounded residual policies and compare them with
+6. **Residual learning:** train bounded residual policies and compare them with
    the baselines.
-6. **Robust evaluation:** run parameter sweeps, disturbance tests, ablations,
+7. **Robust evaluation:** run parameter sweeps, disturbance tests, ablations,
    and reproducible benchmark reports.
-7. **Sim-to-real preparation:** document the transfer strategy and, if
+8. **Sim-to-real preparation:** document the transfer strategy and, if
    justified, evaluate on an isolated bench apparatus without a human wearer.
 
 ## Installation
@@ -127,12 +135,15 @@ Confirm the current package state:
 python -m adaptive_assist
 python scripts/check_environment.py
 python scripts/run_free_joint_demo.py
+python scripts/run_open_loop_experiment.py
 ```
 
 ## Documentation
 
 For a code-oriented tour of the repository, see the
 [developer reading guide](docs/developer_guide.md).
+The [experiment framework guide](docs/experiment_framework.md) documents the
+scenario schema, execution records, CSV format, metrics, and boundaries.
 
 ## Development and validation
 
@@ -157,10 +168,10 @@ python -m ruff format .
 adaptive-assist/
 ├── .github/workflows/ci.yml    # Continuous integration
 ├── assets/                     # Documentation media
-├── configs/                    # Future experiment configuration
+├── configs/                    # Version-controlled experiment scenarios
 ├── docs/                       # Scope, architecture, and decision records
-├── scripts/                     # Environment check and mathematical demo
-├── src/adaptive_assist/        # Package and deterministic dynamics model
+├── scripts/                     # Environment check and runnable demonstrations
+├── src/adaptive_assist/        # Dynamics and experiment interfaces
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration
