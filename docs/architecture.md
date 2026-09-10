@@ -1,10 +1,30 @@
 # Planned Architecture
 
 This document describes the intended system decomposition. The deterministic
-one-degree-of-freedom mathematical plant and the foundation tooling listed under
-"Currently implemented" are working software. State estimation, controllers,
-safety supervision, learning, experiment logging, external simulation, and
-hardware integration remain planned.
+one-degree-of-freedom mathematical plant, deterministic open-loop experiment
+framework, and foundation tooling listed under "Currently implemented" are
+working software. State estimation, controllers, safety supervision, learning,
+broader experiment tracking, external simulation, and hardware integration
+remain planned.
+
+## Implemented open-loop flow
+
+```mermaid
+flowchart LR
+    A[JSON scenario] --> B[ScenarioConfig]
+    B --> C[ReferenceSignal]
+    B --> D[Configured constant torques]
+    B --> E[1-DOF mathematical plant]
+    C --> F[ExperimentSample]
+    D --> E
+    E --> F
+    F --> G[ExperimentResult]
+    G --> H[CSV export]
+    G --> I[RMSE and peak torque metrics]
+```
+
+This implemented path is deterministic and open loop. It contains no controller
+or safety supervisor.
 
 ## System flow
 
@@ -73,9 +93,13 @@ training, simulation evaluation, and any future bench evaluation.
 
 ### Logging and evaluation
 
-The experiment layer will record input state, estimates, controller components,
-applied command, safety events, plant response, configuration, and run metadata.
-Metric calculation will be versioned and kept separate from controller logic.
+The implemented open-loop experiment layer records actual state, reference,
+predefined torques, plant acceleration, scenario identity, and deterministic
+execution metadata. It provides explicit standard-library CSV export plus
+tracking RMSE and peak assistive torque outside controller logic.
+
+State estimates, controller components, safety events, richer provenance,
+additional metrics, and an experiment-tracking service remain planned.
 
 ## Currently implemented
 
@@ -84,14 +108,18 @@ The repository currently contains only:
 - the typed `adaptive_assist` package and status-reporting module entry point;
 - the validated deterministic 1-DOF mathematical plant and integration step;
 - physical-behavior tests and a constant-torque mathematical demonstration;
+- strict versioned JSON scenarios and analytic reference signals;
+- deterministic open-loop execution, immutable records, optional CSV export,
+  and initial controller-independent metrics;
+- an open-loop experiment demonstration;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and
 - model, scope, architecture, and decision-record documentation.
 
 There is no sensor interface, estimator, controller, policy, safety supervisor,
-experiment logger, external simulator integration, ROS 2 integration, or
-hardware interface yet.
+external simulator integration, ROS 2 integration, hardware interface, or
+experiment-tracking service yet.
 
 ## Intended design boundaries
 

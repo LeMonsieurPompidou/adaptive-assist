@@ -4,17 +4,18 @@
 
 `adaptive-assist` is a research and portfolio project for safe learning-based
 control and sim-to-real evaluation of a simplified assistive joint. The project
-has completed its foundation and first deterministic plant-model milestone. A
-scalar 1-DOF mathematical model exists, but controllers, safety supervision,
+has completed its foundation, deterministic plant-model, and experiment-
+interface milestones. A scalar 1-DOF mathematical model and deterministic
+open-loop experiment framework exist, but controllers, safety supervision,
 reinforcement learning, external simulation, ROS 2, and hardware functionality
 do not.
 
 ## Key directories
 
-- `src/adaptive_assist/`: installable package and deterministic dynamics model.
+- `src/adaptive_assist/`: deterministic dynamics and experiment interfaces.
 - `tests/`: automated tests.
 - `docs/`: scope, architecture, and decision records.
-- `configs/`: future version-controlled experiment configuration.
+- `configs/`: version-controlled experiment scenarios.
 - `scripts/`: development and environment utilities.
 - `assets/`: documentation media, not experiment data.
 

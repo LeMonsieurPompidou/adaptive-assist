@@ -1,4 +1,4 @@
-"""Tests for the initial package foundation."""
+"""Tests for package metadata and the status entry point."""
 
 import os
 import subprocess
@@ -16,7 +16,7 @@ def test_package_imports_and_exposes_version() -> None:
 
 
 def test_module_entry_point() -> None:
-    """The module entry point should run and describe its placeholder status."""
+    """The module entry point should run and describe current project status."""
     repository_root = Path(__file__).resolve().parents[1]
     environment = os.environ.copy()
     source_path = str(repository_root / "src")

@@ -1,4 +1,4 @@
-"""Report whether the local environment can use the project foundation."""
+"""Report whether the local environment can use the current project."""
 
 import platform
 import sys
@@ -15,21 +15,38 @@ EXPECTED_FILES = (
     "README.md",
     "assets/README.md",
     "configs/README.md",
+    "configs/scenarios/nominal_open_loop.json",
     "pyproject.toml",
     "docs/architecture.md",
     "docs/decisions/0001-simulator-independent-one-dof-model.md",
+    "docs/decisions/0002-deterministic-experiment-framework.md",
     "docs/decisions/README.md",
+    "docs/developer_guide.md",
+    "docs/experiment_framework.md",
     "docs/one_dof_model.md",
     "docs/project_scope.md",
     "scripts/run_free_joint_demo.py",
+    "scripts/run_open_loop_experiment.py",
     "src/adaptive_assist/__init__.py",
     "src/adaptive_assist/__main__.py",
     "src/adaptive_assist/dynamics/__init__.py",
     "src/adaptive_assist/dynamics/joint.py",
+    "src/adaptive_assist/experiments/__init__.py",
+    "src/adaptive_assist/experiments/logging.py",
+    "src/adaptive_assist/experiments/metrics.py",
+    "src/adaptive_assist/experiments/records.py",
+    "src/adaptive_assist/experiments/reference.py",
+    "src/adaptive_assist/experiments/runner.py",
+    "src/adaptive_assist/experiments/scenario.py",
     "src/adaptive_assist/main.py",
     "src/adaptive_assist/py.typed",
     "tests/test_joint_dynamics.py",
+    "tests/test_experiment_logging.py",
+    "tests/test_experiment_metrics.py",
+    "tests/test_experiment_reference.py",
+    "tests/test_experiment_runner.py",
     "tests/test_package.py",
+    "tests/test_scenario_config.py",
 )
 
 
@@ -51,7 +68,7 @@ def main() -> int:
     print(f"Current working directory: {repository_root}")
     print(f"Opened from repository root: {'yes' if at_repository_root else 'no'}")
     print(f"Python >= 3.11: {'yes' if python_supported else 'no'}")
-    print("Expected foundation files:")
+    print("Expected project files:")
     for relative_path in EXPECTED_FILES:
         status = "present" if (repository_root / relative_path).is_file() else "missing"
         print(f"  [{status}] {relative_path}")

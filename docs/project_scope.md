@@ -8,10 +8,10 @@ state. The engineering challenge is to compare controllers fairly when the
 plant model is uncertain, disturbances occur, and a learned policy can improve
 performance only if its authority is constrained.
 
-The initial goal is a reproducible simulation and evaluation methodology, not a
-complete wearable robot. Each controller will receive consistent observations,
-references, constraints, and test scenarios so that differences can be traced
-to the controller rather than the experimental setup.
+The implemented foundation provides a reproducible open-loop execution and
+evaluation methodology, not a complete wearable robot. Future controllers can
+reuse consistent references, records, metrics, and test scenarios so that
+differences can be traced to the controller rather than the experimental setup.
 
 ## One-degree-of-freedom abstraction
 
@@ -25,8 +25,8 @@ inputs.
 The scalar model uses the standard library and semi-implicit Euler integration.
 Its governing equation, sign convention, assumptions, validation rules, and SI
 units are defined in [the model documentation](one_dof_model.md). Selection of
-an external simulator, reference trajectories, actuator dynamics, and parameter
-ranges for comparative experiments remain future decisions.
+an external simulator, a broader reference suite for controller comparisons,
+actuator dynamics, and parameter ranges remain future decisions.
 
 ## Target inputs and outputs
 
@@ -34,6 +34,13 @@ The implemented plant inputs are a joint state, human torque, assistive torque,
 disturbance torque, and an explicit positive fixed time step. It outputs angular
 acceleration or a new joint state for one integration step. The input state is
 immutable and is not modified by stepping.
+
+The implemented experiment layer loads a versioned scenario containing these
+values, evaluates a constant or sinusoidal `JointReference`, executes predefined
+open-loop torques, and produces immutable time-series samples and deterministic
+metadata. It can explicitly export samples to CSV and currently calculates
+tracking RMSE and peak assistive torque. These are infrastructure metrics, not
+controller benchmark results.
 
 Planned controller inputs include:
 
@@ -45,9 +52,10 @@ Planned controller inputs include:
 
 The future primary controller output is a commanded assistive joint torque. The
 safety supervisor may constrain, filter, replace, or reject that command before
-it is applied to the plant. Experiments will output time-series logs, aggregate
-metrics, constraint events, configuration metadata, and reproducibility data
-such as random seeds and software versions.
+it is applied to the plant. Current experiments output in-memory time-series
+samples, basic deterministic metadata, optional CSV, and two metrics. Constraint
+events, richer metadata, random-seed reporting when randomness exists, and
+software-version provenance remain planned.
 
 ## Planned controllers
 
@@ -141,8 +149,9 @@ The project does not currently pursue:
 2. **Deterministic plant model — complete:** governing scalar equation,
    parameters, SI units, torque inputs, validation, fixed-step integration, and
    behavior tests.
-3. **Experiment interfaces:** reference signals, scenario configuration,
-   observation, logging, and metric interfaces.
+3. **Experiment interfaces — complete:** constant and sinusoidal reference
+   signals, strict JSON scenarios, deterministic open-loop execution, immutable
+   records, CSV logging, and initial metrics.
 4. **Baseline control:** impedance and model-based controllers with unit and
    scenario tests.
 5. **Safety supervision:** command limiting, fallback behavior, termination,
