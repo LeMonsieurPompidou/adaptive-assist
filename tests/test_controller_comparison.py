@@ -11,9 +11,12 @@ from adaptive_assist.controllers import (
 )
 from adaptive_assist.experiments import (
     load_scenario,
+    peak_assistive_torque_n_m,
     run_closed_loop_experiment,
     run_open_loop_experiment,
+    safety_intervention_count,
 )
+from adaptive_assist.safety import SafetySupervisor, load_safety_limits
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,6 +47,24 @@ def test_comparison_changes_only_assistive_torque_generation() -> None:
             parameters=computed_torque_parameters,
             nominal_model=OneDofJointModel(scenario.joint_parameters),
         ),
+    )
+    supervisor = SafetySupervisor(
+        load_safety_limits(REPOSITORY_ROOT / "configs/safety/nominal_limits.json")
+    )
+    supervised_impedance_result = run_closed_loop_experiment(
+        scenario,
+        OneDofJointModel(scenario.joint_parameters),
+        ImpedanceController(parameters),
+        supervisor,
+    )
+    supervised_computed_result = run_closed_loop_experiment(
+        scenario,
+        OneDofJointModel(scenario.joint_parameters),
+        ComputedTorqueController(
+            parameters=computed_torque_parameters,
+            nominal_model=OneDofJointModel(scenario.joint_parameters),
+        ),
+        supervisor,
     )
 
     assert open_loop_result.scenario_name == impedance_result.scenario_name
@@ -98,6 +119,28 @@ def test_comparison_changes_only_assistive_torque_generation() -> None:
             strict=True,
         )
     )
+    for supervised_result in (
+        supervised_impedance_result,
+        supervised_computed_result,
+    ):
+        assert supervised_result.metadata.safety_supervision_active
+        assert supervised_result.samples[0].actual_state == (
+            open_loop_result.samples[0].actual_state
+        )
+        assert tuple(sample.time_s for sample in supervised_result.samples) == tuple(
+            sample.time_s for sample in open_loop_result.samples
+        )
+        assert tuple(sample.reference for sample in supervised_result.samples) == tuple(
+            sample.reference for sample in open_loop_result.samples
+        )
+        assert all(
+            sample.applied_torques.human_torque_n_m == scenario.torques.human_torque_n_m
+            and sample.applied_torques.disturbance_torque_n_m
+            == scenario.torques.disturbance_torque_n_m
+            for sample in supervised_result.samples
+        )
+        assert peak_assistive_torque_n_m(supervised_result) == 2.0
+        assert safety_intervention_count(supervised_result) > 0
     assert all(
         open_sample.applied_torques.human_torque_n_m
         == computed_sample.applied_torques.human_torque_n_m

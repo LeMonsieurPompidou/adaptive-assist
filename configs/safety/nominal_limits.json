@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "max_abs_assistive_torque_n_m": 2.0,
+  "min_joint_angle_rad": -0.5,
+  "max_joint_angle_rad": 0.5,
+  "max_abs_joint_velocity_rad_s": 1.5,
+  "fallback_assistive_torque_n_m": 0.0
+}

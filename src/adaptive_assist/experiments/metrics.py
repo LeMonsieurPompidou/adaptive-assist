@@ -16,9 +16,52 @@ def trajectory_tracking_rmse_rad(result: ExperimentResult) -> float:
 
 
 def peak_assistive_torque_n_m(result: ExperimentResult) -> float:
-    """Return maximum absolute recorded assistive torque in newton metres."""
+    """Return maximum absolute applied assistive torque in newton metres."""
     samples = _require_samples(result)
     return max(abs(sample.applied_torques.assistive_torque_n_m) for sample in samples)
+
+
+def peak_requested_assistive_torque_n_m(result: ExperimentResult) -> float:
+    """Return maximum absolute requested assistive torque in newton metres."""
+    samples = _require_samples(result)
+    return max(
+        _absolute_requested_torque_n_m(sample.requested_assistive_torque_n_m)
+        for sample in samples
+    )
+
+
+def safety_intervention_count(result: ExperimentResult) -> int:
+    """Return the number of recorded samples with supervisor intervention."""
+    samples = _require_samples(result)
+    return sum(sample.safety_intervened for sample in samples)
+
+
+def safety_intervention_fraction(result: ExperimentResult) -> float:
+    """Return the fraction of samples with supervisor intervention."""
+    samples = _require_samples(result)
+    return sum(sample.safety_intervened for sample in samples) / len(samples)
+
+
+def maximum_torque_modification_n_m(result: ExperimentResult) -> float:
+    """Return the largest absolute requested-to-applied torque difference."""
+    samples = _require_samples(result)
+    return max(
+        (
+            math.inf
+            if not math.isfinite(sample.requested_assistive_torque_n_m)
+            else abs(
+                sample.requested_assistive_torque_n_m
+                - sample.applied_torques.assistive_torque_n_m
+            )
+        )
+        for sample in samples
+    )
+
+
+def _absolute_requested_torque_n_m(requested_torque_n_m: float) -> float:
+    return (
+        abs(requested_torque_n_m) if math.isfinite(requested_torque_n_m) else math.inf
+    )
 
 
 def _require_samples(result: ExperimentResult) -> tuple[ExperimentSample, ...]:

@@ -13,13 +13,14 @@ The boundaries are deliberate:
 Plant:                state + torques -> next state
 Experiment framework: configuration + execution + records + metrics
 Controller:           state + reference -> requested assistive torque
-Safety supervisor:    not implemented
+Safety supervisor:    state + requested torque -> applied torque + reasons
 ```
 
 Open-loop experiments use all three configured torques directly. Closed-loop
 experiments preserve configured human and disturbance torques while replacing
-configured assistive torque with the selected `JointController` request. No
-component filters actions, enforces joint limits, or saturates torque.
+configured assistive torque with the selected `JointController` request. An
+optional independent supervisor resolves that request before plant evaluation.
+Without a supervisor, direct pass-through remains explicit and deterministic.
 
 ## Implemented open-loop flow
 
@@ -135,30 +136,42 @@ initial state at `0` and final state at `duration_s`.
 
 `run_closed_loop_experiment()` uses the same private sampling loop and timestamp
 rules. At every sample it evaluates the reference, calls
-`controller.compute(state, reference)`, constructs `JointTorques` from the
-configured human/disturbance torques and requested assistive torque, then
-records and advances the same public plant API. Controller evaluation also
-occurs at the final recorded sample, but no integration follows that sample.
+`controller.compute(state, reference)`, optionally calls
+`safety_supervisor.apply(state, requested_torque)`, constructs `JointTorques`
+from the configured human/disturbance torques and resolved applied assistive
+torque, then records and advances the same public plant API. Controller and
+supervisor evaluation also occur at the final recorded sample, but no
+integration follows that sample.
 
 The controller's `ControllerOutput` is conceptually separate from the applied
-`JointTorques`. They are numerically equal for assistive torque only because the
-future safety-supervision layer does not exist yet. See the
+`JointTorques`. The optional supervisor can modify or replace the request;
+without it the values remain equal. See the
 [impedance controller guide](impedance_controller.md) and
-[computed-torque controller guide](computed_torque_controller.md).
+[computed-torque controller guide](computed_torque_controller.md), plus the
+[simulation safety-supervisor guide](safety_supervisor.md).
 
 Each immutable `ExperimentSample` stores time, actual state, reference,
-applied torques, and plant-computed acceleration. `ExperimentResult` stores the
-scenario name, sample tuple, and deterministic `ExperimentMetadata`. Metadata
-records schema version, integrator name, reference type, duration, time step,
-and integration-step count. It deliberately contains no wall-clock timestamp or
+requested assistive torque, applied torques, ordered intervention reasons, and
+plant-computed acceleration. `safety_intervened` is derived from the reasons.
+`ExperimentResult` stores the scenario name, sample tuple, and deterministic
+`ExperimentMetadata`. Metadata records schema version, integrator name,
+reference type, duration, time step, integration-step count, and whether
+supervision was active. It deliberately contains no wall-clock timestamp or
 random identifier.
+
+At the final state, command resolution and acceleration are recorded for schema
+consistency, but no subsequent `step()` occurs. Final-sample commands count as
+recorded command evaluations; they do not represent torque applied over another
+integration interval or additional energy/work.
 
 ## CSV logging
 
 `write_experiment_csv()` writes one row per sample using Python's `csv` module.
 Columns explicitly identify seconds, radians, radians per second, radians per
-second squared, and newton metres. The function writes only to the path supplied
-by the caller; normal experiment execution creates no output file.
+second squared, and newton metres. Requested and applied assistive torque are
+separate, and supervision status, intervention status, and reasons are included.
+The function writes only to the path supplied by the caller; normal experiment
+execution creates no output file.
 
 The demonstration accepts `--csv PATH` for an explicit export. Tests write only
 inside pytest temporary directories.
@@ -171,9 +184,15 @@ controller logic:
 - `trajectory_tracking_rmse_rad()` computes root-mean-square actual-minus-
   reference angle error in radians.
 - `peak_assistive_torque_n_m()` computes the largest absolute recorded
-  assistive torque in newton metres.
+  **applied** assistive torque in newton metres.
+- `peak_requested_assistive_torque_n_m()` computes the corresponding upstream
+  command peak.
+- `safety_intervention_count()` and `safety_intervention_fraction()` summarize
+  supervisor interventions over recorded samples.
+- `maximum_torque_modification_n_m()` computes the largest absolute
+  requested-to-applied difference.
 
-Both reject an empty result with `ValueError`. Estimated human effort, actuator
+All reject an empty result with `ValueError`. Estimated human effort, actuator
 energy, torque-rate smoothness, constraint violations, and robustness metrics
 remain planned.
 
@@ -183,17 +202,18 @@ The framework uses no random values, timestamps, UUIDs, external simulator, or
 global mutable state. Sample times derive from integer step indices rather than
 repeated time accumulation. Immutable inputs and records prevent accidental
 in-place changes. Both implemented controllers are stateless and deterministic.
-With identical code, scenario and controller configuration, nominal model, and
-Python environment, repeated runs produce equal `ExperimentResult` values.
+With identical code, scenario, controller and safety configuration, nominal
+model, and Python environment, repeated runs produce equal `ExperimentResult`
+values.
 
-## Controller and future safety connection
+## Controller and safety connection
 
 The implemented impedance and computed-torque controllers reuse the reference,
-records, CSV writer, and metrics through `run_closed_loop_experiment()`. Their
-shared use of the `JointController` protocol requires no controller-specific
-runner branch. Future safety logic belongs between `ControllerOutput` and the
-construction of applied `JointTorques`; it must not be embedded in the plant or
-scenario loader.
+records, CSV writer, metrics, and optional `SafetySupervisor` through
+`run_closed_loop_experiment()`. Their shared use of `JointController` requires
+no controller-specific runner or supervisor branch. A future residual policy
+will remain upstream of this same supervisor boundary. Safety decisions are not
+embedded in the controllers, plant, or scenario loader.
 
 ## Limitations
 
@@ -203,6 +223,8 @@ scenario loader.
 - Only JSON schema version 1 is supported.
 - Execution is scalar and in memory; there is no streaming or batch runner.
 - CSV contains samples but not a serialized metadata preamble.
+- The current supervisor is reactive and checks current state only; it does not
+  predict or guarantee next-state feasibility.
 - There is no experiment registry, artifact store, pandas integration, Hydra,
   MLflow, Weights & Biases, simulator-native logging, or ROS 2 transport.
 - The framework provides no safety claims and is not suitable for human use.

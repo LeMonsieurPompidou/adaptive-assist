@@ -13,7 +13,13 @@ identified parameters for a person or physical device.
 feedback gains. Both initially use `Kp = 20 N m/rad` and `Kd = 4 N m s/rad` so
 the first comparison isolates model compensation from feedback retuning. These
 are engineering demonstration values, not optimized, clinically identified,
-biomechanically validated, or evidence of safety. MPC, learned, and
-safety-supervisor configuration remains planned.
+biomechanically validated, or evidence of safety. MPC and learned-controller
+configuration remains planned.
+
+`safety/nominal_limits.json` contains the implemented deterministic simulation
+supervisor limits. The values intentionally make torque clipping visible in the
+nominal tracking demonstration. They are not identified human limits, device
+limits, clinical thresholds, or evidence of real-world safety. Advanced safety
+configuration remains planned.
 
 Generated experiment results do not belong in this directory.

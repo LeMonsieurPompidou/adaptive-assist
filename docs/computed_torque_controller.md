@@ -69,7 +69,8 @@ flowchart LR
     B[JointReference] --> C
     D[Nominal OneDofJointModel] --> C
     C --> E[ControllerOutput<br/>requested assistive torque]
-    E --> F[Direct pass-through<br/>no safety supervisor]
+    E --> F[Optional SafetySupervisor]
+    A --> F
     G[Configured human and<br/>disturbance torques] --> H[JointTorques<br/>applied plant inputs]
     F --> H
     H --> I[Actual OneDofJointModel]
@@ -118,18 +119,20 @@ cost function, or future-input sequence. MPC remains unimplemented.
 
 ## Requested versus applied torque
 
-The controller returns `ControllerOutput.requested_assistive_torque_n_m`.
-Because there is no safety supervisor, the runner currently copies that value
-directly to `JointTorques.assistive_torque_n_m`:
+The controller returns `ControllerOutput.requested_assistive_torque_n_m`. The
+optional `SafetySupervisor` independently resolves the applied value before the
+runner constructs `JointTorques`. Samples preserve the request, applied torque,
+and intervention reasons. Without a supervisor, the explicit direct-pass-through
+relationship is:
 
 ```text
 requested assistive torque = applied assistive torque
 ```
 
-This equality is temporary and provides no safety guarantee. A future safety
-supervisor belongs between `ControllerOutput` and applied `JointTorques`, with
-records updated to preserve both values. The plant and controller equations do
-not need to absorb that responsibility.
+With supervision enabled, the request may be clipped or replaced by fallback.
+The controller and plant equations contain no safety policy. This mathematical
+constraint layer provides no real-world safety guarantee; see
+[the safety-supervisor guide](safety_supervisor.md).
 
 ## Sensitivity and limitations
 

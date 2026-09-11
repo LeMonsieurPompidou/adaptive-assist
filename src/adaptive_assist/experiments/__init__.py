@@ -2,7 +2,11 @@
 
 from adaptive_assist.experiments.logging import CSV_COLUMNS, write_experiment_csv
 from adaptive_assist.experiments.metrics import (
+    maximum_torque_modification_n_m,
     peak_assistive_torque_n_m,
+    peak_requested_assistive_torque_n_m,
+    safety_intervention_count,
+    safety_intervention_fraction,
     trajectory_tracking_rmse_rad,
 )
 from adaptive_assist.experiments.records import (
@@ -40,9 +44,13 @@ __all__ = [
     "ScenarioConfigError",
     "SinusoidalReference",
     "load_scenario",
+    "maximum_torque_modification_n_m",
     "peak_assistive_torque_n_m",
+    "peak_requested_assistive_torque_n_m",
     "run_closed_loop_experiment",
     "run_open_loop_experiment",
+    "safety_intervention_count",
+    "safety_intervention_fraction",
     "trajectory_tracking_rmse_rad",
     "write_experiment_csv",
 ]

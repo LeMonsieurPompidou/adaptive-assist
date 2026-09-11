@@ -26,6 +26,7 @@ def _result(
             time_s=float(index),
             actual_state=JointState(actual_angle, 0.0),
             reference=JointReference(reference_angle, 0.0, 0.0),
+            requested_assistive_torque_n_m=assistive_torque,
             applied_torques=JointTorques(assistive_torque_n_m=assistive_torque),
             angular_acceleration_rad_s2=0.0,
         )
@@ -48,6 +49,7 @@ def _result(
             duration_s=float(max(0, len(samples) - 1)),
             time_step_s=1.0,
             integration_steps=max(0, len(samples) - 1),
+            safety_supervision_active=False,
         ),
     )
 
