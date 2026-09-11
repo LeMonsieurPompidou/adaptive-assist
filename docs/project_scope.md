@@ -13,6 +13,9 @@ execution and evaluation methodology, not a complete wearable robot. The
 impedance and computed-torque baselines reuse consistent references, records,
 metrics, and test scenarios so experimental differences can be traced to
 assistive-torque generation rather than the surrounding infrastructure.
+The implemented deterministic robustness layer now repeats those fixed-gain
+comparisons while varying actual plant parameters and holding the
+computed-torque nominal model fixed.
 
 ## One-degree-of-freedom abstraction
 
@@ -27,7 +30,9 @@ The scalar model uses the standard library and semi-implicit Euler integration.
 Its governing equation, sign convention, assumptions, validation rules, and SI
 units are defined in [the model documentation](one_dof_model.md). Selection of
 an external simulator, a broader reference suite for controller comparisons,
-actuator dynamics, and parameter ranges remain future decisions.
+actuator dynamics, and evidence-based parameter ranges remain future decisions.
+The current 0.8/1.0/1.2 robustness factors are illustrative engineering test
+values rather than identified uncertainty bounds.
 
 ## Target inputs and outputs
 
@@ -62,6 +67,12 @@ output in-memory time-series samples, deterministic metadata, requested/applied
 commands, intervention reasons, optional CSV, and controller-independent
 metrics. Richer provenance and random-seed reporting if randomness is later
 introduced remain planned.
+
+The robustness layer composes those experiment results into deterministic
+per-case summaries. Each summary identifies the actual plant parameters,
+computed-torque nominal parameters where applicable, controller configuration,
+supervision mode, tracking/torque metrics, and safety interventions. It does not
+modify the plant, controller, supervisor, or generic experiment record types.
 
 ## Controller status
 
@@ -105,7 +116,9 @@ The initial evaluation protocol will include:
   requested-to-applied torque modification (implemented);
 - **constraint violations:** richer counts, magnitudes, and durations by
   constraint;
-- **robustness:** degradation under parameter variations and disturbances; and
+- **robustness:** deterministic relative tracking-RMSE degradation under
+  one-at-a-time plant/model parameter variation (implemented for inertia, mass,
+  centre-of-mass distance, damping, and stiffness); and
 - **repeatability:** variation across controlled random seeds where applicable.
 
 The implemented metrics have fixed code-level definitions and are used by the
@@ -185,9 +198,12 @@ The project does not currently pursue:
    finite-command fallback, current-state limit checks, torque clipping,
    intervention records, metrics, and tests. Predictive and real-world safety
    work remains outside the implemented scope.
-6. **Residual learning:** bounded residual-policy training and evaluation with
-   reproducible configurations.
-7. **Comparative evaluation:** nominal, uncertain, and disturbed scenario suites
-   with transparent reports and ablations.
+6. **Deterministic robustness evaluation — complete for the current scope:**
+   fixed-gain one-at-a-time model mismatch at 0.8, 1.0, and 1.2 times nominal,
+   one moderate combined case, supervised/unsupervised interpretation, and
+   summary CSV export. Stochastic uncertainty and disturbance suites remain
+   planned.
+7. **Residual learning:** bounded residual-policy design, training, and
+   evaluation with reproducible configurations. No learned policy exists yet.
 8. **Sim-to-real assessment:** decide whether evidence justifies an isolated,
    non-human bench experiment and document the transfer risks and protocol.

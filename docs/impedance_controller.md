@@ -135,6 +135,10 @@ The three-way script additionally evaluates the implemented computed-torque
 baseline under the same conditions. The older two-way script remains available
 as a stable focused workflow.
 
+`python scripts/run_robustness_sweep.py` evaluates this unchanged controller
+against perturbed actual plants. Impedance receives no nominal or actual model
+parameters; see [the robustness evaluation guide](robustness_evaluation.md).
+
 ## Assumptions and limitations
 
 - Exact joint angle and velocity are available without estimation or delay.

@@ -82,9 +82,10 @@ flowchart LR
 `ComputedTorqueController` satisfies the existing `JointController` protocol,
 so `run_closed_loop_experiment()` requires no computed-torque branch. The
 actual plant and nominal controller model are immutable, separate objects. The
-nominal demonstration gives them equal `JointParameters`; a later robustness
-experiment can deliberately provide different parameters without changing the
-runner or controller interface.
+nominal demonstration gives them equal `JointParameters`; the implemented
+robustness evaluation deliberately changes actual parameters while retaining
+the controller's fixed nominal parameters without changing the runner or
+controller interface.
 
 ## Configuration and gain rationale
 
@@ -160,3 +161,6 @@ python scripts/compare_baseline_controllers.py
 The comparison uses one immutable scenario and equal feedback gains. Its
 reported metrics describe only that deterministic mathematical scenario and
 must not be interpreted as global controller rankings or validation evidence.
+`python scripts/run_robustness_sweep.py` evaluates the same fixed gains under
+the documented deterministic mismatch cases; see
+[the robustness evaluation guide](robustness_evaluation.md).

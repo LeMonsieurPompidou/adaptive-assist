@@ -22,4 +22,12 @@ nominal tracking demonstration. They are not identified human limits, device
 limits, clinical thresholds, or evidence of real-world safety. Advanced safety
 configuration remains planned.
 
+`robustness/model_mismatch_sweep.json` defines the implemented deterministic
+one-at-a-time plant/model mismatch evaluation. It references the nominal
+tracking scenario, fixed controller gains, and one safety-limits file; varies
+inertia, mass, centre-of-mass distance, damping, and stiffness at 0.8, 1.0, and
+1.2 times nominal; and defines one moderate combined case. These ranges are
+illustrative engineering test values, not identified human variability,
+hardware tolerances, or probability distributions.
+
 Generated experiment results do not belong in this directory.

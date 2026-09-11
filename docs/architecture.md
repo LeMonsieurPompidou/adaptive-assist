@@ -5,8 +5,10 @@ one-degree-of-freedom mathematical plant, deterministic experiment framework,
 impedance controller, computed-torque controller, and foundation tooling listed
 under "Currently implemented" are working software. A limited deterministic
 safety supervisor for the scalar simulation is also implemented. State
-estimation, MPC, learning, advanced safety methods, broader experiment tracking,
-external simulation, and hardware integration remain planned.
+estimation, MPC, learning, stochastic domain randomization, advanced safety
+methods, broader experiment tracking, external simulation, and hardware
+integration remain planned. A focused deterministic model-mismatch evaluation
+layer is implemented outside those runtime components.
 
 ## Implemented open-loop flow
 
@@ -59,6 +61,30 @@ controller owns a separate nominal model and reuses its public gravity and
 passive-torque methods. With supervision enabled, requested and applied torque
 are recorded separately. With supervision omitted, the runner explicitly marks
 direct pass-through in metadata. Neither mode is a real-world safety claim.
+
+## Implemented robustness-evaluation flow
+
+```mermaid
+flowchart LR
+    A[Nominal tracking scenario] --> B[Fixed nominal parameters]
+    B --> C[ComputedTorqueController<br/>nominal model]
+    D[Robustness JSON] --> E[Scale selected actual parameter]
+    B --> E
+    E --> F[Actual ScenarioConfig and plant]
+    G[ImpedanceController<br/>no model input] --> H[Generic closed-loop runner]
+    C --> H
+    F --> H
+    I[Optional shared SafetySupervisor] --> H
+    H --> J[ExperimentResult]
+    J --> K[RobustnessRunResult]
+    K --> L[Console table or summary CSV]
+```
+
+The controller nodes indicate separate, equivalent-condition runs. The
+evaluation layer constructs actual plant cases and summarizes existing
+experiment results; it does not change dynamics, controller laws, supervision,
+or fixed-step execution. Computed torque retains one fixed nominal model across
+all cases, while impedance receives no model parameters.
 
 ## Planned full system flow
 
@@ -139,6 +165,12 @@ and deterministic execution metadata for open- and closed-loop runs. It
 provides explicit standard-library CSV export, tracking and torque metrics, and
 simulation-supervisor intervention metrics outside decision logic.
 
+The implemented evaluation layer composes this API into deterministic
+one-at-a-time actual-plant mismatch sweeps. It retains full `ExperimentResult`
+objects, adds case identity and controller-independent summaries, and can write
+an explicitly requested standard-library CSV. Domain randomization, uncertainty
+modeling, and residual learning remain planned.
+
 State estimates, richer controller components and safety events, additional
 metrics and provenance, and an experiment-tracking service remain planned.
 
@@ -159,6 +191,9 @@ The repository currently contains only:
 - a deterministic controller-independent simulation safety supervisor, strict
   limits configuration, requested/applied records, intervention metrics, and a
   supervised comparison;
+- deterministic model-mismatch evaluation for both fixed-gain baselines, with
+  separate actual and nominal parameters, one combined case, supervised and
+  unsupervised modes, robustness summaries, tests, and optional CSV export;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and
@@ -179,6 +214,9 @@ hardware interface, or experiment-tracking service yet.
 - Simulation and future physical adapters should implement a common plant-facing
   contract while keeping timing and transport details explicit.
 - Experiment configuration and metric definitions should be version controlled.
+- Evaluation code may construct perturbed actual plants but must not expose
+  those parameters to a controller's fixed nominal model or retune gains by
+  case.
 - Training artifacts and large datasets should live outside the source tree and
   carry provenance that links them to code and configuration.
 

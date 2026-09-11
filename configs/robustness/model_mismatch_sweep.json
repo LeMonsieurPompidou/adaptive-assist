@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "scenario_config_path": "configs/scenarios/nominal_tracking.json",
+  "impedance_controller_config_path": "configs/controllers/impedance_baseline.json",
+  "computed_torque_controller_config_path": "configs/controllers/computed_torque_baseline.json",
+  "safety_limits_config_path": "configs/safety/nominal_limits.json",
+  "safety_supervision_enabled": true,
+  "varied_parameters": [
+    "inertia_kg_m2",
+    "mass_kg",
+    "center_of_mass_distance_m",
+    "damping_n_m_s_per_rad",
+    "stiffness_n_m_per_rad"
+  ],
+  "scale_factors": [0.8, 1.0, 1.2],
+  "combined_mismatch": {
+    "case_name": "combined_moderate_mismatch",
+    "parameter_scale_factors": {
+      "inertia_kg_m2": 1.2,
+      "mass_kg": 1.15,
+      "center_of_mass_distance_m": 0.9,
+      "damping_n_m_s_per_rad": 1.2,
+      "stiffness_n_m_per_rad": 0.85
+    }
+  }
+}
