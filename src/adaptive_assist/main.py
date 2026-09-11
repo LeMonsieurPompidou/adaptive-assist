@@ -3,7 +3,8 @@
 FOUNDATION_MESSAGE = (
     "adaptive-assist includes a deterministic 1-DOF joint model, experiment "
     "interfaces, impedance controller, computed-torque controller, and a "
-    "simulation safety supervisor; MPC and learning are not yet implemented."
+    "simulation safety supervisor, with deterministic model-mismatch "
+    "evaluation; MPC and learning are not yet implemented."
 )
 
 

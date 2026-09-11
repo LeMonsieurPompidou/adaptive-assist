@@ -6,8 +6,10 @@ assistive robotics joint.
 > **Project status: Work in progress** — a deterministic, simulator-independent
 > one-degree-of-freedom mathematical joint model, experiment framework,
 > impedance controller, computed-torque controller, and a deterministic
-> simulation safety supervisor are implemented. MPC, learned policies, external
-> simulation, ROS 2, and hardware interfaces remain planned.
+> simulation safety supervisor are implemented. Deterministic plant/model
+> mismatch sweeps now evaluate both baselines. MPC, learned policies, domain
+> randomization, external simulation, ROS 2, and hardware interfaces remain
+> planned.
 
 ## Motivation
 
@@ -49,8 +51,9 @@ mathematical supervisor implements finite-command fallback, current-state angle
 and velocity checks, symmetric torque clipping, and intervention records using
 illustrative limits. Predictive constraints, torque-rate limits, bounded
 residual authority, richer fallback behavior, and evaluation under uncertainty
-remain planned. This simulation layer does not establish safety for people,
-medical use, clinical use, or physical deployment.
+or physical conditions remain planned. The implemented deterministic mismatch
+sweep is not safety validation. This simulation layer does not establish safety
+for people, medical use, clinical use, or physical deployment.
 
 ## Planned technical stack
 
@@ -62,6 +65,9 @@ medical use, clinical use, or physical deployment.
 - **Simulation command constraints:** deterministic requested/applied torque
   separation, clipping, fallback, intervention logging, and initial supervisor
   metrics are implemented with illustrative limits.
+- **Robustness evaluation:** deterministic one-at-a-time parameter sweeps,
+  fixed nominal/actual model separation, supervised and unsupervised modes,
+  and summary CSV export are implemented using the standard library.
 - **External dynamics simulation:** undecided; MuJoCo and other options will be
   evaluated in a future Architecture Decision Record (tentative).
 - **Reinforcement learning:** framework and algorithm undecided (tentative).
@@ -77,7 +83,8 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At the current simulation-safety-supervisor milestone, the repository provides:
+At the current deterministic robustness-evaluation milestone, the repository
+provides:
 
 - an installable, typed Python `src`-layout package;
 - a validated deterministic 1-DOF rotational joint model using SI units;
@@ -97,6 +104,11 @@ At the current simulation-safety-supervisor milestone, the repository provides:
 - an optional controller-independent simulation safety supervisor with strict
   limits, deterministic precedence, requested/applied command records, and
   intervention metrics;
+- a focused robustness layer that varies actual inertia, mass,
+  centre-of-mass distance, damping, and stiffness while keeping the
+  computed-torque nominal model and both controllers' gains fixed;
+- supervised and explicitly unsupervised model-mismatch tables, deterministic
+  relative-RMSE summaries, and optional summary CSV export;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
@@ -114,10 +126,12 @@ At the current simulation-safety-supervisor milestone, the repository provides:
    computed-torque controllers are implemented; MPC remains planned.
 5. **Simulation safety layer — complete for the current scope:** finite-command
    fallback, current-state checks, torque clipping, and intervention reporting.
-6. **Residual learning:** train bounded residual policies and compare them with
-   the baselines.
-7. **Robust evaluation:** run parameter sweeps, disturbance tests, ablations,
-   and reproducible benchmark reports.
+6. **Deterministic robustness evaluation — complete for the current scope:**
+   one-at-a-time plant/model mismatch sweeps, one combined case, fixed-gain
+   fairness checks, and supervised/unsupervised summaries. Stochastic
+   randomization and disturbance suites remain planned.
+7. **Residual learning:** define and train bounded residual policies only after
+   the observation, authority, objective, and evaluation protocol are fixed.
 8. **Sim-to-real preparation:** document the transfer strategy and, if
    justified, evaluate on an isolated bench apparatus without a human wearer.
 
@@ -157,6 +171,8 @@ python scripts/run_impedance_experiment.py
 python scripts/run_computed_torque_experiment.py
 python scripts/compare_baseline_controllers.py
 python scripts/run_safety_supervisor_demo.py
+python scripts/run_robustness_sweep.py
+python scripts/run_robustness_sweep.py --unsupervised
 python scripts/compare_open_loop_impedance.py
 ```
 
@@ -173,6 +189,9 @@ documents the implemented nominal-model compensation, assumptions, and model
 mismatch boundary.
 The [simulation safety-supervisor guide](docs/safety_supervisor.md) documents
 the implemented limits, precedence, command records, and validation boundary.
+The [robustness evaluation guide](docs/robustness_evaluation.md) documents the
+implemented mismatch sweep, nominal-versus-actual model boundary, fairness
+invariants, metrics, and interpretation limits.
 
 ## Development and validation
 
@@ -197,10 +216,10 @@ python -m ruff format .
 adaptive-assist/
 ├── .github/workflows/ci.yml    # Continuous integration
 ├── assets/                     # Documentation media
-├── configs/                    # Scenarios, controller gains, and safety limits
+├── configs/                    # Scenarios, gains, safety, and robustness inputs
 ├── docs/                       # Scope, architecture, and decision records
 ├── scripts/                     # Environment check and runnable demonstrations
-├── src/adaptive_assist/        # Dynamics, controllers, safety, and experiments
+├── src/adaptive_assist/        # Dynamics, control, safety, experiments, evaluation
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration

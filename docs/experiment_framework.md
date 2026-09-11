@@ -192,9 +192,11 @@ controller logic:
 - `maximum_torque_modification_n_m()` computes the largest absolute
   requested-to-applied difference.
 
-All reject an empty result with `ValueError`. Estimated human effort, actuator
-energy, torque-rate smoothness, constraint violations, and robustness metrics
-remain planned.
+All reject an empty result with `ValueError`. The separate implemented
+[robustness evaluation layer](robustness_evaluation.md) composes these metrics
+into deterministic model-mismatch summaries and adds relative RMSE degradation.
+Estimated human effort, actuator energy, torque-rate smoothness, and richer
+constraint-violation metrics remain planned.
 
 ## Reproducibility
 
@@ -214,6 +216,11 @@ records, CSV writer, metrics, and optional `SafetySupervisor` through
 no controller-specific runner or supervisor branch. A future residual policy
 will remain upstream of this same supervisor boundary. Safety decisions are not
 embedded in the controllers, plant, or scenario loader.
+
+The implemented robustness runner also composes
+`run_closed_loop_experiment()` rather than specializing it. Perturbed
+`ScenarioConfig` values describe only the actual plant; the computed-torque
+nominal model remains fixed outside the generic experiment layer.
 
 ## Limitations
 
