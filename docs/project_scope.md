@@ -9,10 +9,10 @@ plant model is uncertain, disturbances occur, and a learned policy can improve
 performance only if its authority is constrained.
 
 The implemented foundation provides reproducible open- and closed-loop
-execution and evaluation methodology, not a complete wearable robot. The first
-impedance baseline reuses consistent references, records, metrics, and test
-scenarios so experimental differences can be traced to assistive-torque
-generation rather than the surrounding infrastructure.
+execution and evaluation methodology, not a complete wearable robot. The
+impedance and computed-torque baselines reuse consistent references, records,
+metrics, and test scenarios so experimental differences can be traced to
+assistive-torque generation rather than the surrounding infrastructure.
 
 ## One-degree-of-freedom abstraction
 
@@ -44,7 +44,9 @@ tracking RMSE and peak assistive torque. These are infrastructure metrics, not
 controller benchmark results.
 
 The implemented impedance-controller inputs are desired and actual joint angle
-and angular velocity. Future controller inputs may additionally include:
+and angular velocity. The computed-torque controller additionally uses desired
+angular acceleration and a separate nominal `OneDofJointModel`. Future
+controller inputs may additionally include:
 
 - desired joint position and, where applicable, velocity and acceleration;
 - measured or simulated joint position and velocity;
@@ -70,12 +72,14 @@ and velocity tracking errors to a requested assistive torque. Its non-negative
 proportional and derivative gains are explicit and version controlled. It has
 no saturation, actuator limit, or safety function.
 
-### Model-based controller
+### Computed-torque model-based controller — implemented
 
-A model-based controller will use the chosen plant dynamics to provide a
-dynamics-aware comparison. The exact formulation—such as computed torque or
-model predictive control—remains undecided pending the plant definition and
-computational requirements.
+The computed-torque controller combines the same proportional and derivative
+tracking feedback with desired-acceleration inertial feedforward and
+current-state gravity and passive-torque compensation. It reuses public plant
+methods through a separate nominal model object. Human and disturbance torques
+remain external inputs and are not canceled. MPC remains planned and is not
+part of this baseline.
 
 ### Safe hybrid residual controller
 
@@ -160,9 +164,9 @@ The project does not currently pursue:
 3. **Experiment interfaces — complete:** constant and sinusoidal reference
    signals, strict JSON scenarios, deterministic open-loop execution, immutable
    records, CSV logging, and initial metrics.
-4. **Baseline control — partially complete:** deterministic impedance control,
-   closed-loop execution, and comparison are implemented; model-based control
-   remains planned.
+4. **Baseline control — complete for the current scope:** deterministic
+   impedance and computed-torque control, generic closed-loop execution, and
+   equivalent-condition comparison are implemented. MPC remains planned.
 5. **Safety supervision:** command limiting, fallback behavior, termination,
    and fault-injection tests.
 6. **Residual learning:** bounded residual-policy training and evaluation with

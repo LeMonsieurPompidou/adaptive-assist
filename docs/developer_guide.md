@@ -3,22 +3,25 @@
 This guide is a practical map of the repository as it exists today. The
 implemented product code is a deterministic scalar one-degree-of-freedom
 (1-DOF) joint model, reusable experiment interfaces, and a deterministic
-impedance controller. Model-based control, safety supervision, reinforcement
-learning, ROS 2, external simulators, and hardware interfaces remain planned.
+impedance controller plus a deterministic model-based computed-torque
+controller. MPC, safety supervision, reinforcement learning, ROS 2, external
+simulators, and hardware interfaces remain planned.
 
 ## Repository organization
 
 - `src/adaptive_assist/` contains the installable Python package. The dynamics
   implementation lives in `dynamics/joint.py`; `controllers/` contains the
-  controller contract, impedance law, and gain loader; `experiments/` contains
-  references, scenario loading, execution records, runners, logging, and metrics.
-- `scripts/` contains an environment check, the original free-joint model demo,
-  and the version-controlled open-loop experiment demo.
-- `tests/` covers package behavior, plant physics, and experiment interfaces.
+  controller contract, both baseline laws, and strict gain loaders;
+  `experiments/` contains references, scenario loading, execution records,
+  runners, logging, and metrics.
+- `scripts/` contains an environment check, model and experiment
+  demonstrations, and controller comparisons.
+- `tests/` covers package behavior, plant physics, experiment interfaces, and
+  both controllers.
 - `docs/` separates model and experiment specifications, broader project scope,
   planned architecture, and Architecture Decision Records (ADRs).
 - `configs/scenarios/` contains strict version-controlled JSON scenarios;
-  `configs/controllers/` contains the impedance baseline gains.
+  `configs/controllers/` contains both baseline controllers' gains.
 - `assets/` remains a documented placeholder for documentation media.
 - `pyproject.toml` and `.github/workflows/ci.yml` define packaging and quality
   checks. The remaining root dotfiles provide editor, Git, and ignore rules.
@@ -40,23 +43,30 @@ learning, ROS 2, external simulators, and hardware interfaces remain planned.
    flow, requested/applied torque boundary, and limitations.
 9. `src/adaptive_assist/controllers/impedance.py` and
    `tests/test_impedance_controller.py` — controller behavior and validation.
-10. `src/adaptive_assist/experiments/runner.py` and
+10. `docs/computed_torque_controller.md`,
+    `src/adaptive_assist/controllers/computed_torque.py`, and
+    `tests/test_computed_torque_controller.py` — nominal-model compensation,
+    model ownership, and equation tests.
+11. `src/adaptive_assist/experiments/runner.py` and
     `tests/test_closed_loop_runner.py` — where controller output enters the
     existing experiment loop.
-11. `scripts/run_free_joint_demo.py`, `run_open_loop_experiment.py`,
-    `run_impedance_experiment.py`, and `compare_open_loop_impedance.py` — small
-    end-to-end uses of the public APIs.
-12. Package and subpackage `__init__.py` files — public exports.
-13. `docs/decisions/0001-simulator-independent-one-dof-model.md` — why the model
-   is scalar, deterministic, standard-library-only, and simulator-independent.
-14. `docs/decisions/0002-deterministic-experiment-framework.md` — why the first
+12. `tests/test_computed_torque_integration.py` and
+    `tests/test_controller_comparison.py` — generic-runner compatibility,
+    distinct nominal-model ownership, and fair comparison conditions.
+13. The files under `scripts/` — small end-to-end uses of the public APIs.
+14. Package and subpackage `__init__.py` files — public exports.
+15. `docs/decisions/0001-simulator-independent-one-dof-model.md` — why the model
+    is scalar, deterministic, standard-library-only, and simulator-independent.
+16. `docs/decisions/0002-deterministic-experiment-framework.md` — why the first
     experiment layer uses typed records, JSON, CSV, and fixed steps.
-15. `docs/decisions/0003-impedance-controller-baseline.md` — why requested
+17. `docs/decisions/0003-impedance-controller-baseline.md` — why requested
     torque, safety, and gain configuration are separate concerns.
-16. `docs/project_scope.md` and `docs/architecture.md` — project boundaries and
-   the explicitly planned future system.
-17. `pyproject.toml`, `.github/workflows/ci.yml`, and `AGENTS.md` — development
-   policy and automated checks.
+18. `docs/decisions/0004-computed-torque-model-based-baseline.md` — why the
+    second baseline reuses a separate nominal plant model and defers MPC.
+19. `docs/project_scope.md` and `docs/architecture.md` — project boundaries and
+    the explicitly planned future system.
+20. `pyproject.toml`, `.github/workflows/ci.yml`, and `AGENTS.md` — development
+    policy and automated checks.
 
 ## Current execution flows
 
@@ -129,6 +139,31 @@ safety, biomechanical, or clinical benchmark.
 4. `main()` prints tracking RMSE and peak assistive torque without making a
    performance or safety claim.
 
+### `python scripts/run_computed_torque_experiment.py`
+
+1. The script loads the same `nominal_tracking` scenario and the separate
+   `computed_torque_baseline.json` gain configuration.
+2. It creates one actual `OneDofJointModel` for the runner and a second
+   `OneDofJointModel` for the controller's nominal dynamics. Their parameters
+   match in this nominal demonstration, but their object identities do not.
+3. `ComputedTorqueController.compute()` combines desired-acceleration inertial
+   feedforward, public model gravity/passive results, and tracking feedback.
+4. The unchanged generic `run_closed_loop_experiment()` copies the requested
+   torque into the current applied `JointTorques`, records samples, and advances
+   the actual plant.
+5. Existing controller-independent metrics produce the printed summary.
+
+### `python scripts/compare_baseline_controllers.py`
+
+1. `run_comparison()` loads one tracking scenario and both controller gain
+   configurations.
+2. It uses separate actual plant objects with equal parameters and initial
+   conditions for open-loop, impedance, and computed-torque runs.
+3. The computed-torque nominal model has the same parameters in this nominal
+   comparison; both feedback controllers use the same `Kp` and `Kd`.
+4. The script prints the same two metrics for all three results. These observed
+   scenario values are not global rankings or validation evidence.
+
 ```mermaid
 flowchart TD
     subgraph Status_command[Current: package status command]
@@ -156,9 +191,10 @@ flowchart TD
         P -. only with --csv .-> R[CSV file]
     end
 
-    subgraph Closed_loop_command[Current: impedance experiment]
+    subgraph Closed_loop_command[Current: baseline-controller experiments]
         S[nominal_tracking.json] --> T[ScenarioConfig]
-        U[impedance_baseline.json] --> V[ImpedanceController]
+        U[Controller JSON] --> V[JointController<br/>impedance or computed torque]
+        Z[Nominal model<br/>computed torque only] --> V
         T --> W[run_closed_loop_experiment]
         V --> W
         W --> X[ExperimentResult]
@@ -177,6 +213,8 @@ flowchart TD
 | `src/adaptive_assist/dynamics/joint.py` | Defines validation, model dataclasses, torque calculations, angular acceleration, and semi-implicit Euler stepping. |
 | `src/adaptive_assist/controllers/__init__.py` | Defines the public controller-layer exports. |
 | `src/adaptive_assist/controllers/base.py` | Defines immutable `ControllerOutput` and the small `JointController` protocol. |
+| `src/adaptive_assist/controllers/computed_torque.py` | Defines validated computed-torque gains and nominal-model feedforward, compensation, and feedback. |
+| `src/adaptive_assist/controllers/computed_torque_config.py` | Strictly loads the versioned computed-torque gain JSON using the standard library. |
 | `src/adaptive_assist/controllers/impedance.py` | Defines validated impedance gains and the proportional-derivative tracking law. |
 | `src/adaptive_assist/controllers/impedance_config.py` | Strictly loads the versioned impedance gain JSON using the standard library. |
 | `src/adaptive_assist/experiments/__init__.py` | Defines the public experiment-layer exports. |
@@ -190,6 +228,8 @@ flowchart TD
 | `scripts/run_free_joint_demo.py` | Runs and prints the current constant-assistive-torque demonstration through the public model API. |
 | `scripts/run_open_loop_experiment.py` | Loads the nominal scenario, runs it, prints metrics, and optionally requests CSV export. |
 | `scripts/run_impedance_experiment.py` | Loads tracking and gain configurations, runs impedance feedback, and prints metrics. |
+| `scripts/run_computed_torque_experiment.py` | Runs computed torque with separate actual and nominal model objects and prints metrics. |
+| `scripts/compare_baseline_controllers.py` | Compares open loop and both controllers under equivalent nominal conditions. |
 | `scripts/compare_open_loop_impedance.py` | Runs open-loop and impedance assistance under equivalent scenario conditions. |
 | `tests/test_joint_dynamics.py` | Tests physical signs, torque composition, inertia response, validation, integration, determinism, and immutability. |
 | `tests/test_experiment_reference.py` | Tests constant and sinusoidal references, analytic kinematics, determinism, and invalid values. |
@@ -199,6 +239,9 @@ flowchart TD
 | `tests/test_experiment_logging.py` | Tests CSV creation, headers, row count, and representative values in a temporary directory. |
 | `tests/test_impedance_controller.py` | Tests controller signs, terms, zero/invalid gains, determinism, immutability, and unused acceleration. |
 | `tests/test_impedance_config.py` | Tests strict gain configuration and invalid fields or values. |
+| `tests/test_computed_torque_controller.py` | Tests every computed-torque term, signs, validation, determinism, and immutability. |
+| `tests/test_computed_torque_config.py` | Tests strict computed-torque configuration and invalid fields or gains. |
+| `tests/test_computed_torque_integration.py` | Proves generic-runner compatibility and separate nominal-model ownership. |
 | `tests/test_closed_loop_runner.py` | Tests controller call timing, torque composition, step count, determinism, and immutability. |
 | `tests/test_controller_comparison.py` | Tests that shared comparison conditions differ only in assistive-torque generation. |
 | `tests/test_package.py` | Tests package import/version and the module status entry point in a subprocess. |
@@ -241,6 +284,8 @@ The controller layer connects through typed values rather than plant internals:
 
 - `ImpedanceController.compute()` consumes the current `JointState` and
   `JointReference` and returns `ControllerOutput`.
+- `ComputedTorqueController.compute()` consumes the same values and calls its
+  separate nominal `OneDofJointModel` for gravity and passive compensation.
 - `run_closed_loop_experiment()` combines the requested assistive torque with
   configured human and disturbance torque in a new `JointTorques` value.
 - That `JointTorques` is the currently applied plant input. A future safety
@@ -282,11 +327,15 @@ at `duration_s` without stepping beyond the configured duration.
 | Version-controlled experiment values | `configs/scenarios/*.json` | Schema in `docs/experiment_framework.md` and loader validation |
 | Impedance gain values | `configs/controllers/impedance_baseline.json` | `impedance_config.py`, controller tests, and `docs/impedance_controller.md` |
 | Impedance equation or gain validation | `src/adaptive_assist/controllers/impedance.py` | `tests/test_impedance_controller.py`, ADR 0003 |
+| Computed-torque gain values | `configs/controllers/computed_torque_baseline.json` | `computed_torque_config.py`, controller tests, and `docs/computed_torque_controller.md` |
+| Computed-torque equation or nominal model use | `src/adaptive_assist/controllers/computed_torque.py` | `tests/test_computed_torque_controller.py`, ADR 0004 |
 | Reference behavior | `src/adaptive_assist/experiments/reference.py` | Reference tests and JSON reference schema |
 | Gravity, passive, or net dynamics equations | `src/adaptive_assist/dynamics/joint.py` → torque methods and `angular_acceleration_rad_s2()` | Model documentation, ADR consequences, physical-behavior tests |
 | Numerical integration | `src/adaptive_assist/dynamics/joint.py` → `step()` | Integration tests, model documentation, ADR 0001 |
 | Demonstration scenario or output | `scripts/run_free_joint_demo.py` | `README.md` if invocation or meaning changes |
 | Impedance demonstration or comparison output | `scripts/run_impedance_experiment.py`, `scripts/compare_open_loop_impedance.py` | Tracking scenario, gain configuration, comparison test |
+| Computed-torque demonstration or three-way comparison | `scripts/run_computed_torque_experiment.py`, `scripts/compare_baseline_controllers.py` | Both gain configurations and computed-torque integration tests |
+| Future parameter-mismatch evaluation | Construct different actual and nominal `OneDofJointModel` objects | `tests/test_computed_torque_integration.py`, scenario-suite and robustness-metric design |
 | Open-loop execution order | `src/adaptive_assist/experiments/runner.py` | Runner tests, records, experiment documentation |
 | Closed-loop torque connection | `src/adaptive_assist/experiments/runner.py` → `run_closed_loop_experiment()` | Closed-loop runner tests and safety-boundary documentation |
 | Sample or metadata fields | `src/adaptive_assist/experiments/records.py` | Runner, CSV columns, metrics, tests |
@@ -315,12 +364,13 @@ Read these closely before changing behavior:
 - `tests/test_experiment_*.py` and `tests/test_scenario_config.py`;
 - `docs/experiment_framework.md`;
 - `src/adaptive_assist/controllers/`;
-- `tests/test_impedance_controller.py`, `tests/test_impedance_config.py`, and
+- `tests/test_impedance_controller.py`,
+  `tests/test_computed_torque_controller.py`, and
   `tests/test_closed_loop_runner.py`;
-- `docs/impedance_controller.md`;
+- `docs/impedance_controller.md` and `docs/computed_torque_controller.md`;
 - `configs/scenarios/nominal_open_loop.json`;
 - `configs/scenarios/nominal_tracking.json` and
-  `configs/controllers/impedance_baseline.json`;
+  both files under `configs/controllers/`;
 - `scripts/run_free_joint_demo.py`; and
 - `scripts/run_open_loop_experiment.py`.
 
@@ -342,14 +392,14 @@ change alters project boundaries or architectural decisions.
 
 The following diagram summarizes the plan documented in
 `docs/architecture.md`. The scalar mathematical plant, experiment framework,
-and impedance controller exist today. State estimation, model-based control,
-safety supervision, learned policies, external plant adapters, and broader
-experiment tracking remain planned.
+impedance controller, and computed-torque controller exist today. State
+estimation, MPC, safety supervision, learned policies, external plant adapters,
+and broader experiment tracking remain planned.
 
 ```mermaid
 flowchart LR
     A[Sensors or simulation state<br/>PLANNED] --> B[State estimation<br/>PLANNED]
-    B --> C[Controller interface<br/>IMPEDANCE IMPLEMENTED]
+    B --> C[Controller interface<br/>TWO BASELINES IMPLEMENTED]
     C --> D[Optional residual learned policy<br/>PLANNED]
     D --> E[Safety supervisor<br/>PLANNED]
     E --> F[Plant]
@@ -367,6 +417,7 @@ flowchart LR
 
     H[Open-loop scenarios, records, CSV, and two metrics<br/>IMPLEMENTED] -. reusable foundation .-> G
     I[Impedance controller and closed-loop runner<br/>IMPLEMENTED] -. first baseline .-> C
+    J[Computed-torque controller<br/>IMPLEMENTED] -. model-based baseline .-> C
 ```
 
 ## Glossary
@@ -388,6 +439,11 @@ flowchart LR
   through a controller.
 - **Impedance controller:** The implemented proportional-derivative baseline
   that maps position and velocity error to requested assistive torque.
+- **Computed-torque controller:** The implemented model-based baseline that
+  adds desired-acceleration inertial feedforward and nominal gravity/passive
+  compensation to proportional-derivative feedback.
+- **Nominal model:** The controller-owned `OneDofJointModel` used to calculate
+  compensation. It is distinct from the experiment's actual plant object.
 - **Requested torque:** The controller's output before future safety
   supervision (`ControllerOutput`).
 - **Applied torque:** The `JointTorques` input passed to the plant. Requested and
@@ -425,7 +481,13 @@ python scripts/run_open_loop_experiment.py
 # Run the closed-loop impedance engineering demonstration
 python scripts/run_impedance_experiment.py
 
-# Compare equivalent open-loop and impedance conditions
+# Run the closed-loop computed-torque engineering demonstration
+python scripts/run_computed_torque_experiment.py
+
+# Compare all three baselines under equivalent nominal conditions
+python scripts/compare_baseline_controllers.py
+
+# Retained focused two-way comparison
 python scripts/compare_open_loop_impedance.py
 
 # Export that experiment only when explicitly requested
@@ -461,6 +523,10 @@ python scripts/check_environment.py
   supervision is separate from the controller and plant.
 - [ ] Controller comparisons preserve equivalent scenario conditions and do not
   overstate numerical results.
+- [ ] Model-based controllers call public plant APIs instead of duplicating
+  gravity or passive-dynamics equations.
+- [ ] Actual and nominal model ownership remains separable for future mismatch
+  evaluation.
 - [ ] Scenario files match the strict documented schema and contain no implicit
   randomness.
 - [ ] Records, logging, and metrics remain controller-independent.

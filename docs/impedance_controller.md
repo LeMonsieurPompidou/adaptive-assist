@@ -118,6 +118,7 @@ biomechanically validated.
 ```powershell
 python scripts/run_impedance_experiment.py
 python scripts/compare_open_loop_impedance.py
+python scripts/compare_baseline_controllers.py
 ```
 
 The comparison uses the same `nominal_tracking` scenario object for both runs.
@@ -126,6 +127,10 @@ duration, and time step are therefore equal. Only assistive-torque generation
 differs: configured zero open-loop assistance versus impedance feedback. The
 reported RMSE and peak torque are reproducible infrastructure outputs, not a
 safety, biomechanical, or clinical benchmark.
+
+The three-way script additionally evaluates the implemented computed-torque
+baseline under the same conditions. The older two-way script remains available
+as a stable focused workflow.
 
 ## Assumptions and limitations
 

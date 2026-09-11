@@ -5,10 +5,10 @@
 `adaptive-assist` is a research and portfolio project for safe learning-based
 control and sim-to-real evaluation of a simplified assistive joint. The project
 has completed its foundation, deterministic plant-model, experiment-interface,
-and impedance-controller milestones. A scalar 1-DOF mathematical model,
-deterministic experiment framework, and unsaturated impedance baseline exist.
-Model-based control, safety supervision, reinforcement learning, external
-simulation, ROS 2, and hardware functionality do not.
+impedance-controller, and computed-torque-controller milestones. A scalar 1-DOF
+mathematical model, deterministic experiment framework, and two unsaturated
+classical baselines exist. MPC, safety supervision, reinforcement learning,
+external simulation, ROS 2, and hardware functionality do not.
 
 ## Key directories
 

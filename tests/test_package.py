@@ -40,6 +40,5 @@ def test_module_entry_point() -> None:
     assert result.stdout.strip() == FOUNDATION_MESSAGE
     assert "deterministic 1-DOF joint model" in result.stdout
     assert "impedance controller" in result.stdout
-    assert "model-based control and safety supervision are not yet implemented" in (
-        result.stdout
-    )
+    assert "computed-torque controller" in result.stdout
+    assert "MPC and safety supervision are not yet implemented" in result.stdout
