@@ -18,6 +18,7 @@ Accepted records:
 
 - [ADR 0001: Simulator-independent one-DOF plant model](0001-simulator-independent-one-dof-model.md)
 - [ADR 0002: Deterministic experiment framework](0002-deterministic-experiment-framework.md)
+- [ADR 0003: Impedance controller baseline](0003-impedance-controller-baseline.md)
 
 Adding a major dependency or committing to another listed technology should be
 accompanied by an ADR.

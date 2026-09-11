@@ -23,7 +23,7 @@ class ScenarioConfigError(ValueError):
 
 @dataclass(frozen=True, slots=True)
 class ScenarioConfig:
-    """Complete deterministic configuration for an open-loop experiment."""
+    """Deterministic plant, reference, timing, and external-torque configuration."""
 
     schema_version: int
     scenario_name: str

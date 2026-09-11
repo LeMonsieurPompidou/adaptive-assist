@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scenario_name": "nominal_tracking",
+  "duration_s": 4.0,
+  "time_step_s": 0.01,
+  "initial_state": {
+    "angle_rad": 0.0,
+    "angular_velocity_rad_s": 0.0
+  },
+  "joint_parameters": {
+    "inertia_kg_m2": 1.2,
+    "mass_kg": 2.5,
+    "center_of_mass_distance_m": 0.25,
+    "gravitational_acceleration_m_s2": 9.81,
+    "damping_n_m_s_per_rad": 0.3,
+    "stiffness_n_m_per_rad": 1.0,
+    "rest_angle_rad": 0.0
+  },
+  "reference": {
+    "type": "sinusoidal",
+    "amplitude_rad": 0.2,
+    "frequency_hz": 0.5,
+    "offset_rad": 0.0
+  },
+  "torques": {
+    "human_torque_n_m": 0.0,
+    "assistive_torque_n_m": 0.0,
+    "disturbance_torque_n_m": 0.0
+  }
+}
