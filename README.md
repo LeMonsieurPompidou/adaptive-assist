@@ -5,9 +5,9 @@ assistive robotics joint.
 
 > **Project status: Work in progress** — a deterministic, simulator-independent
 > one-degree-of-freedom mathematical joint model, experiment framework,
-> impedance controller, and computed-torque controller are implemented. MPC,
-> safety supervision, learned policies, external simulation, ROS 2, and
-> hardware interfaces remain planned.
+> impedance controller, computed-torque controller, and a deterministic
+> simulation safety supervisor are implemented. MPC, learned policies, external
+> simulation, ROS 2, and hardware interfaces remain planned.
 
 ## Motivation
 
@@ -38,18 +38,19 @@ The project is intended to:
 | Model predictive control (MPC) | Constrained optimization-based baseline | Planned |
 | Safe hybrid residual RL controller | Learned bounded correction on top of a baseline controller | Planned |
 
-Both implemented controllers produce unsaturated requested torque. No safety
-supervisor is implemented, so that request currently passes directly to the
-plant as assistive torque.
+Both implemented controllers produce unsaturated requested torque. The optional
+simulation supervisor independently resolves that request into applied torque;
+direct pass-through remains available for explicit unsupervised comparisons.
 
 ## Safety positioning
 
-Safety is an architectural constraint, not a claim of validation. Planned work
-includes explicit state and actuator limits, a supervisor around learned
-actions, bounded residual authority, violation logging, deterministic fallback
-behavior, and evaluation under disturbances and model uncertainty. These
-mechanisms will require evidence in simulation and controlled bench testing;
-their presence alone would not establish safety for people.
+Safety is an architectural constraint, not a claim of validation. The current
+mathematical supervisor implements finite-command fallback, current-state angle
+and velocity checks, symmetric torque clipping, and intervention records using
+illustrative limits. Predictive constraints, torque-rate limits, bounded
+residual authority, richer fallback behavior, and evaluation under uncertainty
+remain planned. This simulation layer does not establish safety for people,
+medical use, clinical use, or physical deployment.
 
 ## Planned technical stack
 
@@ -58,6 +59,9 @@ their presence alone would not establish safety for people.
   Euler integration is implemented.
 - **Experiment infrastructure:** typed fixed-step scenarios, JSON configuration,
   immutable records, CSV export, and initial metrics are implemented.
+- **Simulation command constraints:** deterministic requested/applied torque
+  separation, clipping, fallback, intervention logging, and initial supervisor
+  metrics are implemented with illustrative limits.
 - **External dynamics simulation:** undecided; MuJoCo and other options will be
   evaluated in a future Architecture Decision Record (tentative).
 - **Reinforcement learning:** framework and algorithm undecided (tentative).
@@ -73,7 +77,7 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At the current computed-torque-controller milestone, the repository provides:
+At the current simulation-safety-supervisor milestone, the repository provides:
 
 - an installable, typed Python `src`-layout package;
 - a validated deterministic 1-DOF rotational joint model using SI units;
@@ -90,6 +94,9 @@ At the current computed-torque-controller milestone, the repository provides:
   nominal inertial feedforward, gravity compensation, and passive compensation;
 - deterministic closed-loop execution and equivalent-conditions comparisons
   of zero-assistance open loop, impedance control, and computed-torque control;
+- an optional controller-independent simulation safety supervisor with strict
+  limits, deterministic precedence, requested/applied command records, and
+  intervention metrics;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
@@ -105,8 +112,8 @@ At the current computed-torque-controller milestone, the repository provides:
    deterministic execution, records, CSV logging, and initial metrics.
 4. **Classical baselines — complete for the current scope:** impedance and
    computed-torque controllers are implemented; MPC remains planned.
-5. **Safety layer:** implement constraints, action filtering, fallback behavior,
-   and violation reporting.
+5. **Simulation safety layer — complete for the current scope:** finite-command
+   fallback, current-state checks, torque clipping, and intervention reporting.
 6. **Residual learning:** train bounded residual policies and compare them with
    the baselines.
 7. **Robust evaluation:** run parameter sweeps, disturbance tests, ablations,
@@ -149,6 +156,7 @@ python scripts/run_open_loop_experiment.py
 python scripts/run_impedance_experiment.py
 python scripts/run_computed_torque_experiment.py
 python scripts/compare_baseline_controllers.py
+python scripts/run_safety_supervisor_demo.py
 python scripts/compare_open_loop_impedance.py
 ```
 
@@ -163,6 +171,8 @@ implemented feedback law, gains, closed-loop flow, and safety boundary.
 The [computed-torque controller guide](docs/computed_torque_controller.md)
 documents the implemented nominal-model compensation, assumptions, and model
 mismatch boundary.
+The [simulation safety-supervisor guide](docs/safety_supervisor.md) documents
+the implemented limits, precedence, command records, and validation boundary.
 
 ## Development and validation
 
@@ -187,10 +197,10 @@ python -m ruff format .
 adaptive-assist/
 ├── .github/workflows/ci.yml    # Continuous integration
 ├── assets/                     # Documentation media
-├── configs/                    # Version-controlled scenarios and controller gains
+├── configs/                    # Scenarios, controller gains, and safety limits
 ├── docs/                       # Scope, architecture, and decision records
 ├── scripts/                     # Environment check and runnable demonstrations
-├── src/adaptive_assist/        # Dynamics, experiments, and baseline controllers
+├── src/adaptive_assist/        # Dynamics, controllers, safety, and experiments
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration

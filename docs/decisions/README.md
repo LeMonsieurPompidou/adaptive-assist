@@ -20,6 +20,7 @@ Accepted records:
 - [ADR 0002: Deterministic experiment framework](0002-deterministic-experiment-framework.md)
 - [ADR 0003: Impedance controller baseline](0003-impedance-controller-baseline.md)
 - [ADR 0004: Computed-torque model-based baseline](0004-computed-torque-model-based-baseline.md)
+- [ADR 0005: Independent simulation safety supervisor](0005-independent-safety-supervisor.md)
 
 Adding a major dependency or committing to another listed technology should be
 accompanied by an ADR.

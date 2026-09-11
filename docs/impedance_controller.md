@@ -36,7 +36,8 @@ baseline.
 ## Implemented interfaces
 
 - `JointController` defines `compute(state, reference) -> ControllerOutput`.
-- `ControllerOutput` contains the finite requested assistive torque.
+- `ControllerOutput` preserves requested assistive torque for downstream
+  validation; the supervisor owns the final finite-command check.
 - `ImpedanceControllerParameters` contains immutable, finite, non-negative
   proportional and derivative gains. Zero gains are valid.
 - `ImpedanceController` implements the equation above without saturation,
@@ -53,7 +54,8 @@ flowchart LR
     C[Current JointState] --> D[ImpedanceController.compute]
     B --> D
     D --> E[ControllerOutput<br/>requested torque]
-    E --> F[Direct pass-through<br/>no safety supervisor]
+    E --> F[Optional SafetySupervisor]
+    C --> F
     G[Configured human and<br/>disturbance torques] --> H[JointTorques<br/>plant inputs]
     F --> H
     H --> I[OneDofJointModel]
@@ -74,18 +76,19 @@ steps the plant once unless the sample is final. As with open-loop execution,
 
 ## Requested versus applied torque
 
-The controller produces a request in `ControllerOutput`. The experiment runner
-constructs the separate `JointTorques` plant input and records it as applied.
-Because no safety supervisor exists, the current relationship is:
+The controller produces a request in `ControllerOutput`. The optional
+`SafetySupervisor` independently resolves the applied value before the runner
+constructs `JointTorques`. The sample records requested torque, applied torque,
+and intervention reasons. When the supervisor is omitted, the explicitly
+unsupervised relationship remains:
 
 ```text
 requested assistive torque = applied assistive plant torque
 ```
 
-This equality is temporary, not a safety guarantee. A future supervisor will
-sit between `ControllerOutput` and `JointTorques`, where it may constrain or
-replace the request and record the distinction. The dynamics model will not
-need to change.
+With supervision enabled, the request may be clipped or replaced by fallback.
+Neither mode is a safety guarantee, and the controller itself contains no
+safety logic. See [the safety-supervisor guide](safety_supervisor.md).
 
 ## Configuration and gain selection
 

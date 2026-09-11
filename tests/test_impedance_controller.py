@@ -195,6 +195,7 @@ def test_reference_acceleration_does_not_affect_output() -> None:
     )
 
 
-def test_controller_output_rejects_non_finite_torque() -> None:
-    with pytest.raises(ValueError, match="requested_assistive_torque_n_m"):
-        ControllerOutput(math.inf)
+def test_controller_output_preserves_non_finite_torque_for_supervision() -> None:
+    output = ControllerOutput(math.inf)
+
+    assert math.isinf(output.requested_assistive_torque_n_m)

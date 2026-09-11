@@ -104,8 +104,9 @@ muscle activation dynamics, contact, impacts, sensor dynamics, or parameter
 identification. It does not implement a controller, safety supervisor, learned
 policy, external simulator adapter, ROS 2 interface, or hardware interface.
 
-Joint limits and actuator constraints belong to a future safety layer so that
-the plant remains independent of controller and policy decisions. The current
-model must not be interpreted as a clinically accurate human joint or used for
-human testing.
+Joint and actuator command constraints belong to an independent safety layer so
+the plant remains free of controller and policy decisions. The implemented
+simulation supervisor therefore sits outside this model; advanced constraints
+remain future work. The current model must not be interpreted as a clinically
+accurate human joint or used for human testing.
 

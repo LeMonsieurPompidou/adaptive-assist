@@ -54,14 +54,14 @@ controller inputs may additionally include:
 - actuator state and configured torque and torque-rate limits; and
 - optional model parameters, uncertainty descriptors, or disturbance estimates.
 
-The implemented controller output is requested assistive joint torque. With no
-safety supervisor implemented, the closed-loop runner currently passes that
-request directly to the plant as applied assistive torque. A future supervisor
-may constrain, filter, replace, or reject the request before it is applied.
-Current experiments output in-memory time-series samples, basic deterministic
-metadata, optional CSV, and two metrics. Constraint events, richer metadata,
-random-seed reporting when randomness exists, and software-version provenance
-remain planned.
+The implemented controller output is requested assistive joint torque. The
+optional mathematical safety supervisor can replace or clip that request before
+the runner passes applied assistive torque to the plant. Direct pass-through
+remains available and is explicit in experiment metadata. Current experiments
+output in-memory time-series samples, deterministic metadata, requested/applied
+commands, intervention reasons, optional CSV, and controller-independent
+metrics. Richer provenance and random-seed reporting if randomness is later
+introduced remain planned.
 
 ## Controller status
 
@@ -101,27 +101,41 @@ The initial evaluation protocol will include:
 - **peak torque:** maximum absolute applied assistive torque (implemented);
 - **torque-rate smoothness:** a measure of rapid torque changes or jerk-like
   behavior;
-- **constraint violations:** counts, magnitudes, and durations by constraint;
+- **simulation supervisor interventions:** count, sample fraction, and maximum
+  requested-to-applied torque modification (implemented);
+- **constraint violations:** richer counts, magnitudes, and durations by
+  constraint;
 - **robustness:** degradation under parameter variations and disturbances; and
 - **repeatability:** variation across controlled random seeds where applicable.
 
-The two implemented metrics have fixed code-level definitions and are used by
-the current engineering comparison. Definitions, units, sampling rules, and
-aggregation methods for remaining metrics must be fixed before formal
-benchmarks. Current demonstration outputs are not benchmark results.
+The implemented metrics have fixed code-level definitions and are used by the
+current engineering comparisons. Peak assistive torque means applied torque;
+peak requested torque is available separately. Definitions, units, sampling
+rules, and aggregation methods for remaining metrics must be fixed before formal
+benchmarks. Current demonstration outputs are not benchmark results or safety
+evidence.
 
 ## Safety constraints
 
-The model deliberately implements no automatic joint limits or torque
-saturation. A future safety layer will define and monitor:
+The plant and controllers deliberately implement no joint limits or torque
+saturation. The independent mathematical safety supervisor currently provides:
 
-- joint position and velocity bounds;
-- actuator torque and torque-rate limits;
-- finite observations and commands;
+- fallback for non-finite requested commands;
+- current joint-angle and absolute-velocity checks;
+- symmetric assistive-torque clipping; and
+- deterministic per-sample intervention reasons.
+
+Illustrative supervisor values are not human, device, medical, or clinical
+limits. Future work may define and evaluate:
+
+- predictive enforcement or termination semantics for joint position and
+  velocity bounds;
+- torque-rate and actuator-state limits;
+- broader observation validation;
 - bounded learned residual actions;
 - deterministic fallback to a validated baseline or safe command;
-- termination criteria for unsafe simulated states; and
-- complete logging of supervisor interventions and violations.
+- predictive constraints and termination criteria; and
+- richer intervention and violation accounting.
 
 Safety logic should be independent of the learned policy and exercised by unit,
 integration, and fault-injection tests. These engineering constraints do not
@@ -167,8 +181,10 @@ The project does not currently pursue:
 4. **Baseline control — complete for the current scope:** deterministic
    impedance and computed-torque control, generic closed-loop execution, and
    equivalent-condition comparison are implemented. MPC remains planned.
-5. **Safety supervision:** command limiting, fallback behavior, termination,
-   and fault-injection tests.
+5. **Simulation safety supervision — complete for the current scope:**
+   finite-command fallback, current-state limit checks, torque clipping,
+   intervention records, metrics, and tests. Predictive and real-world safety
+   work remains outside the implemented scope.
 6. **Residual learning:** bounded residual-policy training and evaluation with
    reproducible configurations.
 7. **Comparative evaluation:** nominal, uncertain, and disturbed scenario suites

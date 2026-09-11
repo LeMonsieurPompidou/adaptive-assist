@@ -3,9 +3,10 @@
 This document describes the intended system decomposition. The deterministic
 one-degree-of-freedom mathematical plant, deterministic experiment framework,
 impedance controller, computed-torque controller, and foundation tooling listed
-under "Currently implemented" are working software. State estimation, MPC,
-safety supervision, learning, broader experiment tracking, external simulation,
-and hardware integration remain planned.
+under "Currently implemented" are working software. A limited deterministic
+safety supervisor for the scalar simulation is also implemented. State
+estimation, MPC, learning, advanced safety methods, broader experiment tracking,
+external simulation, and hardware integration remain planned.
 
 ## Implemented open-loop flow
 
@@ -36,9 +37,12 @@ flowchart LR
     C --> E
     N[Nominal model<br/>computed torque only] --> E
     E --> F[ControllerOutput<br/>requested assistive torque]
-    F --> G[Direct pass-through<br/>no safety supervisor]
+    F --> G[Optional SafetySupervisor]
+    F -. direct pass-through when omitted .-> I
+    D --> G
+    G --> O[SafetyResult<br/>applied torque and reasons]
     A --> H[Human and disturbance torques]
-    G --> I[JointTorques<br/>applied plant inputs]
+    O --> I[JointTorques<br/>applied plant inputs]
     H --> I
     I --> J[1-DOF mathematical plant]
     D --> J
@@ -52,9 +56,9 @@ flowchart LR
 
 Both implemented controllers use this generic runner path. The computed-torque
 controller owns a separate nominal model and reuses its public gravity and
-passive-torque methods. The controller request currently passes directly to the
-plant and is recorded as applied assistive torque. This is an explicit
-temporary equality, not safety supervision or a safety claim.
+passive-torque methods. With supervision enabled, requested and applied torque
+are recorded separately. With supervision omitted, the runner explicitly marks
+direct pass-through in metadata. Neither mode is a real-world safety claim.
 
 ## Planned full system flow
 
@@ -120,21 +124,23 @@ safety paths.
 
 ### Safety supervisor
 
-The supervisor will combine or filter requested torque, enforce configured
-limits, detect invalid states and commands, select fallback behavior, and emit
-structured intervention records. Its constraints must apply consistently in
-training, simulation evaluation, and any future bench evaluation.
+The implemented scalar-simulation supervisor checks finite requests and current
+position/velocity, applies deterministic fallback, clips torque magnitude, and
+emits ordered intervention reasons. It has one controller-independent interface
+used by both baselines. Torque-rate limits, predictive constraints, advanced
+fallback, and any external-simulator or physical integration remain planned.
+The illustrative limits are not human, device, medical, or clinical thresholds.
 
 ### Logging and evaluation
 
-The implemented experiment layer records actual state, reference, applied
-torques, plant acceleration, scenario identity, and deterministic execution
-metadata for open- and closed-loop runs. It provides explicit standard-library
-CSV export plus tracking RMSE and peak assistive torque outside controller
-logic.
+The implemented experiment layer records actual state, reference, requested and
+applied torque, intervention reasons, plant acceleration, scenario identity,
+and deterministic execution metadata for open- and closed-loop runs. It
+provides explicit standard-library CSV export, tracking and torque metrics, and
+simulation-supervisor intervention metrics outside decision logic.
 
-State estimates, controller components, safety events, richer provenance,
-additional metrics, and an experiment-tracking service remain planned.
+State estimates, richer controller components and safety events, additional
+metrics and provenance, and an experiment-tracking service remain planned.
 
 ## Currently implemented
 
@@ -150,21 +156,24 @@ The repository currently contains only:
 - deterministic impedance and computed-torque controllers, strict gain
   configurations, a generic closed-loop runner, engineering demonstrations,
   and equivalent-condition baseline comparisons;
+- a deterministic controller-independent simulation safety supervisor, strict
+  limits configuration, requested/applied records, intervention metrics, and a
+  supervised comparison;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and
 - model, scope, architecture, and decision-record documentation.
 
-There is no sensor interface, estimator, MPC, learned policy, safety supervisor,
-external simulator integration, ROS 2 integration, hardware interface, or
-experiment-tracking service yet.
+There is no sensor interface, estimator, MPC, learned policy, advanced or
+real-world safety system, external simulator integration, ROS 2 integration,
+hardware interface, or experiment-tracking service yet.
 
 ## Intended design boundaries
 
 - Controllers should depend on typed state and reference interfaces, not on a
   particular simulator or hardware API.
 - Controller-requested torque should remain distinct from the final applied
-  torque boundary owned by future safety supervision.
+  torque boundary owned by safety supervision.
 - The safety supervisor should remain independently testable and independent of
   reinforcement-learning framework internals.
 - Simulation and future physical adapters should implement a common plant-facing

@@ -41,4 +41,5 @@ def test_module_entry_point() -> None:
     assert "deterministic 1-DOF joint model" in result.stdout
     assert "impedance controller" in result.stdout
     assert "computed-torque controller" in result.stdout
-    assert "MPC and safety supervision are not yet implemented" in result.stdout
+    assert "simulation safety supervisor" in result.stdout
+    assert "MPC and learning are not yet implemented" in result.stdout
