@@ -4,10 +4,10 @@ Safe learning-based control and sim-to-real evaluation for a simplified
 assistive robotics joint.
 
 > **Project status: Work in progress** — a deterministic, simulator-independent
-> one-degree-of-freedom mathematical joint model, experiment framework, and
-> impedance-controller baseline are implemented. Model-based control, safety
-> supervision, learned policies, external simulation, ROS 2, and hardware
-> interfaces remain planned.
+> one-degree-of-freedom mathematical joint model, experiment framework,
+> impedance controller, and computed-torque controller are implemented. MPC,
+> safety supervision, learned policies, external simulation, ROS 2, and
+> hardware interfaces remain planned.
 
 ## Motivation
 
@@ -34,10 +34,13 @@ The project is intended to:
 | Controller | Role | Status |
 | --- | --- | --- |
 | Classical impedance controller | Interpretable baseline with tunable compliance | Implemented |
-| Model-based controller | Dynamics-aware reference for performance and robustness | Planned |
+| Computed-torque controller | Model-based baseline with nominal dynamics compensation | Implemented |
+| Model predictive control (MPC) | Constrained optimization-based baseline | Planned |
 | Safe hybrid residual RL controller | Learned bounded correction on top of a baseline controller | Planned |
 
-Only the unsaturated impedance-controller baseline is currently implemented.
+Both implemented controllers produce unsaturated requested torque. No safety
+supervisor is implemented, so that request currently passes directly to the
+plant as assistive torque.
 
 ## Safety positioning
 
@@ -70,7 +73,7 @@ and trade-offs can be documented.
 
 ## Current capabilities
 
-At the current impedance-controller milestone, the repository provides:
+At the current computed-torque-controller milestone, the repository provides:
 
 - an installable, typed Python `src`-layout package;
 - a validated deterministic 1-DOF rotational joint model using SI units;
@@ -83,8 +86,10 @@ At the current impedance-controller milestone, the repository provides:
   trajectory-tracking RMSE, and peak-assistive-torque metrics;
 - a typed proportional-derivative impedance controller that produces requested
   assistive torque without saturation or safety filtering;
-- deterministic closed-loop execution and an equivalent-conditions comparison
-  with zero-assistance open-loop operation;
+- a typed computed-torque controller that reuses the public plant model for
+  nominal inertial feedforward, gravity compensation, and passive compensation;
+- deterministic closed-loop execution and equivalent-conditions comparisons
+  of zero-assistance open loop, impedance control, and computed-torque control;
 - automated formatting, linting, type-checking, and tests;
 - a cross-platform environment checker;
 - continuous integration across supported Python versions; and
@@ -98,8 +103,8 @@ At the current impedance-controller milestone, the repository provides:
    fixed-step integration, unit tests, and a mathematical demonstration.
 3. **Experiment interfaces — complete:** reference signals, versioned scenarios,
    deterministic execution, records, CSV logging, and initial metrics.
-4. **Classical baselines — partially complete:** the impedance controller is
-   implemented; model-based control remains planned.
+4. **Classical baselines — complete for the current scope:** impedance and
+   computed-torque controllers are implemented; MPC remains planned.
 5. **Safety layer:** implement constraints, action filtering, fallback behavior,
    and violation reporting.
 6. **Residual learning:** train bounded residual policies and compare them with
@@ -142,6 +147,8 @@ python scripts/check_environment.py
 python scripts/run_free_joint_demo.py
 python scripts/run_open_loop_experiment.py
 python scripts/run_impedance_experiment.py
+python scripts/run_computed_torque_experiment.py
+python scripts/compare_baseline_controllers.py
 python scripts/compare_open_loop_impedance.py
 ```
 
@@ -153,6 +160,9 @@ The [experiment framework guide](docs/experiment_framework.md) documents the
 scenario schema, execution records, CSV format, metrics, and boundaries.
 The [impedance controller guide](docs/impedance_controller.md) documents the
 implemented feedback law, gains, closed-loop flow, and safety boundary.
+The [computed-torque controller guide](docs/computed_torque_controller.md)
+documents the implemented nominal-model compensation, assumptions, and model
+mismatch boundary.
 
 ## Development and validation
 
@@ -180,7 +190,7 @@ adaptive-assist/
 ├── configs/                    # Version-controlled scenarios and controller gains
 ├── docs/                       # Scope, architecture, and decision records
 ├── scripts/                     # Environment check and runnable demonstrations
-├── src/adaptive_assist/        # Dynamics, experiments, and impedance controller
+├── src/adaptive_assist/        # Dynamics, experiments, and baseline controllers
 ├── tests/                      # Automated tests
 ├── AGENTS.md                   # Repository guidance for coding agents
 ├── pyproject.toml              # Packaging and tool configuration

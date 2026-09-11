@@ -1,9 +1,9 @@
 # Planned Architecture
 
 This document describes the intended system decomposition. The deterministic
-one-degree-of-freedom mathematical plant, deterministic open-loop experiment
-framework, impedance controller, and foundation tooling listed under "Currently
-implemented" are working software. State estimation, model-based control,
+one-degree-of-freedom mathematical plant, deterministic experiment framework,
+impedance controller, computed-torque controller, and foundation tooling listed
+under "Currently implemented" are working software. State estimation, MPC,
 safety supervision, learning, broader experiment tracking, external simulation,
 and hardware integration remain planned.
 
@@ -26,14 +26,15 @@ flowchart LR
 This implemented path is deterministic and open loop. It contains no controller
 or safety supervisor.
 
-## Implemented impedance closed-loop flow
+## Implemented baseline-controller closed-loop flow
 
 ```mermaid
 flowchart LR
     A[JSON scenario] --> B[ReferenceSignal]
     B --> C[JointReference]
-    D[Current JointState] --> E[ImpedanceController]
+    D[Current JointState] --> E[JointController<br/>impedance or computed torque]
     C --> E
+    N[Nominal model<br/>computed torque only] --> E
     E --> F[ControllerOutput<br/>requested assistive torque]
     F --> G[Direct pass-through<br/>no safety supervisor]
     A --> H[Human and disturbance torques]
@@ -49,9 +50,11 @@ flowchart LR
     L --> M[CSV and metrics]
 ```
 
-The controller request currently passes directly to the plant and is recorded
-as applied assistive torque. This is an explicit temporary equality, not safety
-supervision or a safety claim.
+Both implemented controllers use this generic runner path. The computed-torque
+controller owns a separate nominal model and reuses its public gravity and
+passive-torque methods. The controller request currently passes directly to the
+plant and is recorded as applied assistive torque. This is an explicit
+temporary equality, not safety supervision or a safety claim.
 
 ## Planned full system flow
 
@@ -102,9 +105,11 @@ interaction-torque estimation, and explicit handling of stale or invalid data.
 
 The implemented `JointController` interface maps state and reference to a typed
 requested assistive torque. `ImpedanceController` implements proportional
-position-error and derivative velocity-error feedback with version-controlled
-gains. It contains no saturation or safety logic. A model-based controller
-remains planned and can later implement the same small interface.
+position-error and derivative velocity-error feedback. `ComputedTorqueController`
+implements the same protocol and adds nominal inertial feedforward plus gravity
+and passive compensation through `OneDofJointModel`. Both have
+version-controlled gains and contain no saturation or safety logic. MPC remains
+planned.
 
 ### Residual learned policy
 
@@ -142,16 +147,17 @@ The repository currently contains only:
 - deterministic open-loop execution, immutable records, optional CSV export,
   and initial controller-independent metrics;
 - an open-loop experiment demonstration;
-- a deterministic impedance controller, strict gain configuration, closed-loop
-  runner, engineering demonstration, and open-loop comparison;
+- deterministic impedance and computed-torque controllers, strict gain
+  configurations, a generic closed-loop runner, engineering demonstrations,
+  and equivalent-condition baseline comparisons;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and
 - model, scope, architecture, and decision-record documentation.
 
-There is no sensor interface, estimator, model-based controller, learned policy,
-safety supervisor, external simulator integration, ROS 2 integration, hardware
-interface, or experiment-tracking service yet.
+There is no sensor interface, estimator, MPC, learned policy, safety supervisor,
+external simulator integration, ROS 2 integration, hardware interface, or
+experiment-tracking service yet.
 
 ## Intended design boundaries
 

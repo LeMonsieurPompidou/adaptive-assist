@@ -18,7 +18,7 @@ Safety supervisor:    not implemented
 
 Open-loop experiments use all three configured torques directly. Closed-loop
 experiments preserve configured human and disturbance torques while replacing
-configured assistive torque with the impedance controller's request. No
+configured assistive torque with the selected `JointController` request. No
 component filters actions, enforces joint limits, or saturates torque.
 
 ## Implemented open-loop flow
@@ -115,7 +115,8 @@ Its numerical values are illustrative inputs chosen to exercise the deterministi
 experiment pipeline. They are not identified biomechanical parameters, a model
 of a particular person or device, or evidence of physical or medical validation.
 `configs/scenarios/nominal_tracking.json` uses the same schema and provides two
-sinusoidal cycles for the implemented impedance demonstration and comparison.
+sinusoidal cycles for the implemented baseline-controller demonstrations and
+comparison.
 
 ## Fixed-step execution and records
 
@@ -141,8 +142,9 @@ occurs at the final recorded sample, but no integration follows that sample.
 
 The controller's `ControllerOutput` is conceptually separate from the applied
 `JointTorques`. They are numerically equal for assistive torque only because the
-future safety-supervision layer does not exist yet. See
-[the impedance controller guide](impedance_controller.md).
+future safety-supervision layer does not exist yet. See the
+[impedance controller guide](impedance_controller.md) and
+[computed-torque controller guide](computed_torque_controller.md).
 
 Each immutable `ExperimentSample` stores time, actual state, reference,
 applied torques, and plant-computed acceleration. `ExperimentResult` stores the
@@ -180,22 +182,23 @@ remain planned.
 The framework uses no random values, timestamps, UUIDs, external simulator, or
 global mutable state. Sample times derive from integer step indices rather than
 repeated time accumulation. Immutable inputs and records prevent accidental
-in-place changes. The impedance controller is stateless and deterministic. With
-identical code, scenario and controller configuration, and Python environment,
-repeated runs produce equal `ExperimentResult` values.
+in-place changes. Both implemented controllers are stateless and deterministic.
+With identical code, scenario and controller configuration, nominal model, and
+Python environment, repeated runs produce equal `ExperimentResult` values.
 
 ## Controller and future safety connection
 
-The implemented impedance controller reuses the reference, records, CSV writer,
-and metrics through `run_closed_loop_experiment()`. A future model-based
-controller can implement the same `JointController` protocol. Future safety
-logic belongs between `ControllerOutput` and the construction of applied
-`JointTorques`; it must not be embedded in the plant or scenario loader.
+The implemented impedance and computed-torque controllers reuse the reference,
+records, CSV writer, and metrics through `run_closed_loop_experiment()`. Their
+shared use of the `JointController` protocol requires no controller-specific
+runner branch. Future safety logic belongs between `ControllerOutput` and the
+construction of applied `JointTorques`; it must not be embedded in the plant or
+scenario loader.
 
 ## Limitations
 
-- Open-loop torque inputs are constant and predefined; closed-loop feedback is
-  limited to the impedance controller.
+- Open-loop torque inputs are constant and predefined; closed-loop execution is
+  limited to the two implemented deterministic baseline controllers.
 - Only constant and sinusoidal references are supported.
 - Only JSON schema version 1 is supported.
 - Execution is scalar and in memory; there is no streaming or batch runner.

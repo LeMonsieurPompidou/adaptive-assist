@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "controller_type": "computed_torque",
+  "proportional_gain_n_m_per_rad": 20.0,
+  "derivative_gain_n_m_s_per_rad": 4.0
+}
