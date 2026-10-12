@@ -138,6 +138,9 @@ as a stable focused workflow.
 `python scripts/run_robustness_sweep.py` evaluates this unchanged controller
 against perturbed actual plants. Impedance receives no nominal or actual model
 parameters; see [the robustness evaluation guide](robustness_evaluation.md).
+The excitation sweep likewise keeps these gains fixed and injects deterministic
+disturbance torque only through runner-created `JointTorques`; see
+[the excitation robustness guide](excitation_robustness.md).
 
 ## Assumptions and limitations
 

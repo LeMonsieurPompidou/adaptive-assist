@@ -43,4 +43,5 @@ def test_module_entry_point() -> None:
     assert "computed-torque controller" in result.stdout
     assert "simulation safety supervisor" in result.stdout
     assert "deterministic model-mismatch evaluation" in result.stdout
+    assert "excitation robustness evaluation" in result.stdout
     assert "MPC and learning are not yet implemented" in result.stdout

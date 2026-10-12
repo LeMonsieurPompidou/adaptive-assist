@@ -30,4 +30,12 @@ inertia, mass, centre-of-mass distance, damping, and stiffness at 0.8, 1.0, and
 illustrative engineering test values, not identified human variability,
 hardware tolerances, or probability distributions.
 
+`robustness/excitation_disturbance_sweep.json` defines the implemented
+frequency, actual-inertia, and deterministic-disturbance cross-product. It
+reuses the nominal tracking scenario, fixed controller gains, and unchanged
+simulation safety limits. Its `0.25–1.00 Hz` frequencies, `0.8/1.0/1.2` inertia
+factors, `1 N m` pulses, and recovery tolerance/dwell are illustrative
+engineering inputs—not human-interaction values, device limits, identified
+uncertainty ranges, or stochastic distributions.
+
 Generated experiment results do not belong in this directory.

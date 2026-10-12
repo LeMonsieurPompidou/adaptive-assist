@@ -11,6 +11,7 @@ from adaptive_assist.experiments import (
     ExperimentResult,
     ExperimentSample,
     JointReference,
+    peak_absolute_tracking_error_rad,
     peak_assistive_torque_n_m,
     trajectory_tracking_rmse_rad,
 )
@@ -74,7 +75,11 @@ def test_peak_assistive_torque_uses_absolute_value() -> None:
 
 @pytest.mark.parametrize(
     "metric",
-    [trajectory_tracking_rmse_rad, peak_assistive_torque_n_m],
+    [
+        trajectory_tracking_rmse_rad,
+        peak_absolute_tracking_error_rad,
+        peak_assistive_torque_n_m,
+    ],
 )
 def test_metrics_reject_empty_results(
     metric: Callable[[ExperimentResult], float],

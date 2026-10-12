@@ -6,11 +6,13 @@
 control and sim-to-real evaluation of a simplified assistive joint. The project
 has completed its foundation, deterministic plant-model, experiment-interface,
 impedance-controller, computed-torque-controller, and deterministic simulation
-safety-supervisor milestones, plus deterministic model-mismatch evaluation. A
+safety-supervisor milestones, plus deterministic model-mismatch and excitation
+robustness evaluation. A
 scalar 1-DOF mathematical model, deterministic experiment framework, two
 unsaturated classical baselines, an independent command-constraint layer, and
-fixed one-at-a-time robustness sweeps exist. MPC, reinforcement learning,
-domain randomization, external simulation, ROS 2, hardware functionality, and
+fixed one-at-a-time robustness sweeps and a deterministic frequency/inertia/
+disturbance grid exist. MPC, reinforcement learning, domain randomization,
+stochastic noise, external simulation, ROS 2, hardware functionality, and
 real-world safety validation do not.
 
 ## Key directories
@@ -39,6 +41,8 @@ real-world safety validation do not.
   owned by computed-torque control; never retune a baseline per mismatch case.
 - Treat configured robustness ranges as illustrative engineering values, not
   identified uncertainty distributions or evidence that learning is needed.
+- Keep deterministic disturbance signals outside controller logic and preserve
+  their half-open interval and fixed-step recovery semantics.
 - Do not add major dependencies without documenting the decision in an ADR.
 - Run all validation commands before finishing:
   - `python -m ruff format --check .`

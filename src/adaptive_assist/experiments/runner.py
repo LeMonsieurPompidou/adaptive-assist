@@ -15,6 +15,7 @@ from adaptive_assist.experiments.records import (
 )
 from adaptive_assist.experiments.reference import JointReference
 from adaptive_assist.experiments.scenario import ScenarioConfig
+from adaptive_assist.experiments.torque import TorqueSignal
 from adaptive_assist.safety import SafetyInterventionReason, SafetySupervisor
 
 if TYPE_CHECKING:
@@ -40,7 +41,7 @@ def run_open_loop_experiment(
     return _run_experiment(
         scenario,
         model,
-        lambda _state, _reference: _ResolvedTorques(
+        lambda _time_s, _state, _reference: _ResolvedTorques(
             requested_assistive_torque_n_m=(scenario.torques.assistive_torque_n_m),
             applied_torques=scenario.torques,
         ),
@@ -53,10 +54,13 @@ def run_closed_loop_experiment(
     model: OneDofJointModel,
     controller: JointController,
     safety_supervisor: SafetySupervisor | None = None,
+    *,
+    disturbance_signal: TorqueSignal | None = None,
 ) -> ExperimentResult:
-    """Execute a controller with optional independent safety supervision."""
+    """Execute a controller with optional supervision and disturbance signal."""
 
     def controller_torques(
+        time_s: float,
         state: JointState,
         reference: JointReference,
     ) -> _ResolvedTorques:
@@ -79,7 +83,11 @@ def run_closed_loop_experiment(
         applied_torques = JointTorques(
             human_torque_n_m=scenario.torques.human_torque_n_m,
             assistive_torque_n_m=applied_torque_n_m,
-            disturbance_torque_n_m=scenario.torques.disturbance_torque_n_m,
+            disturbance_torque_n_m=(
+                scenario.torques.disturbance_torque_n_m
+                if disturbance_signal is None
+                else disturbance_signal.evaluate(time_s)
+            ),
         )
         return _ResolvedTorques(
             requested_assistive_torque_n_m=requested_torque_n_m,
@@ -100,7 +108,7 @@ def run_closed_loop_experiment(
 def _run_experiment(
     scenario: ScenarioConfig,
     model: OneDofJointModel,
-    torque_provider: Callable[[JointState, JointReference], _ResolvedTorques],
+    torque_provider: Callable[[float, JointState, JointReference], _ResolvedTorques],
     *,
     safety_supervision_active: bool,
 ) -> ExperimentResult:
@@ -122,7 +130,7 @@ def _run_experiment(
             else step_index * scenario.time_step_s
         )
         reference = scenario.reference.evaluate(time_s)
-        resolved_torques = torque_provider(state, reference)
+        resolved_torques = torque_provider(time_s, state, reference)
         acceleration_rad_s2 = model.angular_acceleration_rad_s2(
             state,
             resolved_torques.applied_torques,

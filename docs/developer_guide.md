@@ -6,9 +6,11 @@ implemented product code is a deterministic scalar one-degree-of-freedom
 impedance controller plus a deterministic model-based computed-torque
 controller. A deterministic supervisor now constrains commands in scalar
 simulation experiments. A focused deterministic evaluation layer now varies
-actual plant parameters while preserving the computed-torque nominal model.
-MPC, reinforcement learning, domain randomization, advanced or real-world
-safety, ROS 2, external simulators, and hardware interfaces remain planned.
+actual plant parameters while preserving the computed-torque nominal model and
+evaluates frequency/inertia interactions with signed deterministic pulses. MPC,
+reinforcement learning, domain randomization, stochastic noise, advanced or
+real-world safety, ROS 2, external simulators, and hardware interfaces remain
+planned.
 
 ## Repository organization
 
@@ -18,19 +20,20 @@ safety, ROS 2, external simulators, and hardware interfaces remain planned.
   `safety/` contains simulation limits, strict configuration, command
   resolution, and intervention reasons;
   `experiments/` contains references, scenario loading, execution records,
-  runners, logging, and metrics; and `evaluation/` contains deterministic
-  robustness cases, orchestration, strict configuration, and summary CSV.
+  runners, torque signals, logging, and metrics; and `evaluation/` contains
+  deterministic mismatch and excitation cases, orchestration, strict
+  configuration, and summary CSV.
 - `scripts/` contains an environment check, model and experiment
   demonstrations, and controller comparisons.
 - `tests/` covers package behavior, plant physics, experiment interfaces, and
-  controllers, safety supervision, and deterministic robustness evaluation.
+  controllers, safety supervision, and deterministic robustness evaluations.
 - `docs/` separates model and experiment specifications, broader project scope,
   planned architecture, and Architecture Decision Records (ADRs).
 - `configs/scenarios/` contains strict version-controlled JSON scenarios;
   `configs/controllers/` contains both baseline controllers' gains; and
   `configs/safety/` contains illustrative simulation limits.
   `configs/robustness/` references those fixed inputs and defines actual-plant
-  parameter factors.
+  parameter factors, reference frequencies, and disturbance profiles.
 - `assets/` remains a documented placeholder for documentation media.
 - `pyproject.toml` and `.github/workflows/ci.yml` define packaging and quality
   checks. The remaining root dotfiles provide editor, Git, and ignore rules.
@@ -76,23 +79,30 @@ safety, ROS 2, external simulators, and hardware interfaces remain planned.
     model isolation, and result summaries.
 17. `src/adaptive_assist/evaluation/config.py`, `logging.py`, and their tests —
     strict configuration and deterministic summary export.
-18. The files under `scripts/` — small end-to-end uses of the public APIs.
-19. Package and subpackage `__init__.py` files — public exports.
-20. `docs/decisions/0001-simulator-independent-one-dof-model.md` — why the model
+18. `docs/excitation_robustness.md` — frequency/inertia motivation, pulse and
+    recovery semantics, grid results, and interpretation limits.
+19. `src/adaptive_assist/experiments/torque.py`,
+    `src/adaptive_assist/evaluation/excitation.py`, and their focused tests —
+    the time-varying input boundary and 72-run orchestration.
+20. The files under `scripts/` — small end-to-end uses of the public APIs.
+21. Package and subpackage `__init__.py` files — public exports.
+22. `docs/decisions/0001-simulator-independent-one-dof-model.md` — why the model
     is scalar, deterministic, standard-library-only, and simulator-independent.
-21. `docs/decisions/0002-deterministic-experiment-framework.md` — why the first
+23. `docs/decisions/0002-deterministic-experiment-framework.md` — why the first
     experiment layer uses typed records, JSON, CSV, and fixed steps.
-22. `docs/decisions/0003-impedance-controller-baseline.md` — why requested
+24. `docs/decisions/0003-impedance-controller-baseline.md` — why requested
     torque, safety, and gain configuration are separate concerns.
-23. `docs/decisions/0004-computed-torque-model-based-baseline.md` — why the
+25. `docs/decisions/0004-computed-torque-model-based-baseline.md` — why the
     second baseline reuses a separate nominal plant model and defers MPC.
-24. `docs/decisions/0005-independent-safety-supervisor.md` — why constraints
+26. `docs/decisions/0005-independent-safety-supervisor.md` — why constraints
     stay independent and command intent is recorded separately.
-25. `docs/decisions/0006-deterministic-model-mismatch-evaluation.md` — why
+27. `docs/decisions/0006-deterministic-model-mismatch-evaluation.md` — why
     deterministic one-at-a-time sweeps precede randomization or learning.
-26. `docs/project_scope.md` and `docs/architecture.md` — project boundaries and
+28. `docs/decisions/0007-excitation-and-disturbance-robustness.md` — why
+    deterministic frequency and pulse evaluation precedes stochastic inputs.
+29. `docs/project_scope.md` and `docs/architecture.md` — project boundaries and
     the explicitly planned future system.
-27. `pyproject.toml`, `.github/workflows/ci.yml`, and `AGENTS.md` — development
+30. `pyproject.toml`, `.github/workflows/ci.yml`, and `AGENTS.md` — development
     policy and automated checks.
 
 ## Current execution flows
@@ -235,6 +245,30 @@ evolution and therefore later feedback requests, while unsupervised results
 show the raw controller-to-plant path. Neither mode is physical or clinical
 validation, and no learned policy or randomization is present.
 
+### `python scripts/run_excitation_robustness.py`
+
+1. The script loads
+   `configs/robustness/excitation_disturbance_sweep.json` and resolves the same
+   nominal scenario, fixed gains, and safety limits used by earlier milestones.
+2. `build_excitation_cases()` creates the deterministic cross-product of four
+   frequencies, three actual-inertia factors, and three disturbance profiles.
+3. Each case builds a `SinusoidalReference` with unchanged amplitude and a
+   `ConstantTorqueSignal` or half-open `[start, end)` `PulseTorqueSignal`.
+4. `run_excitation_sweep()` constructs computed torque once with the unchanged
+   nominal model, constructs case-specific actual plants, and reuses
+   `run_closed_loop_experiment()` for both controllers.
+5. The runner evaluates the disturbance signal at the sample timestamp and
+   inserts it into `JointTorques`; the controller interface remains
+   `compute(state, reference)` and receives no disturbance input.
+6. `ExcitationRunResult` retains the full `ExperimentResult` plus grid identity,
+   peak error, sample-defined recovery, torque, and intervention summaries.
+7. `--unsupervised` selects explicit direct pass-through, while `--csv PATH`
+   writes deterministic summary rows only to the requested location.
+
+The primary command is supervised. Its results must not be mixed with the
+unsupervised diagnostic results because clipping changes the trajectory and
+later controller requests.
+
 ```mermaid
 flowchart TD
     subgraph Status_command[Current: package status command]
@@ -282,6 +316,16 @@ flowchart TD
         AG --> AH[RobustnessRunResult]
         AH --> AI[Console table or optional CSV]
     end
+
+    subgraph Excitation_command[Current: excitation robustness evaluation]
+        AJ[excitation_disturbance_sweep.json] --> AK[build_excitation_cases]
+        AK --> AL[Frequency, actual inertia,<br/>and TorqueSignal]
+        AM[Fixed nominal model<br/>computed torque only] --> AN[run_excitation_sweep]
+        AL --> AN
+        AN --> AO[Existing closed-loop runner]
+        AO --> AP[ExcitationRunResult]
+        AP --> AQ[Console table or optional CSV]
+    end
 ```
 
 ## Current Python files
@@ -304,15 +348,19 @@ flowchart TD
 | `src/adaptive_assist/safety/supervisor.py` | Defines limits, intervention reasons, command results, and deterministic precedence. |
 | `src/adaptive_assist/experiments/__init__.py` | Defines the public experiment-layer exports. |
 | `src/adaptive_assist/experiments/reference.py` | Defines `JointReference`, the `ReferenceSignal` protocol, and constant and analytic sinusoidal signals. |
+| `src/adaptive_assist/experiments/torque.py` | Defines the small `TorqueSignal` protocol plus immutable constant and half-open pulse signals. |
 | `src/adaptive_assist/experiments/scenario.py` | Defines `ScenarioConfig`, strict schema validation, and the standard-library JSON loader. |
 | `src/adaptive_assist/experiments/records.py` | Defines immutable samples with requested/applied commands and reasons, deterministic metadata, and results. |
-| `src/adaptive_assist/experiments/runner.py` | Executes open or generic controller commands, with optional supervision, through one fixed-step loop. |
+| `src/adaptive_assist/experiments/runner.py` | Executes open or generic controller commands, with optional supervision and closed-loop disturbance signal, through one fixed-step loop. |
 | `src/adaptive_assist/experiments/logging.py` | Writes sample state, reference, requested/applied commands, and interventions to an explicit CSV path. |
-| `src/adaptive_assist/experiments/metrics.py` | Computes tracking, requested/applied torque, and intervention metrics from results. |
+| `src/adaptive_assist/experiments/metrics.py` | Computes RMSE, peak tracking error, requested/applied torque, and intervention metrics from results. |
 | `src/adaptive_assist/evaluation/__init__.py` | Defines the public deterministic-evaluation exports. |
 | `src/adaptive_assist/evaluation/config.py` | Strictly loads the versioned robustness JSON with the standard library. |
 | `src/adaptive_assist/evaluation/robustness.py` | Defines mismatch parameters and cases, immutable summaries, parameter scaling, fixed-model sweep orchestration, degradation, and worst-case selection. |
 | `src/adaptive_assist/evaluation/logging.py` | Writes deterministically ordered robustness summaries to an explicit CSV path. |
+| `src/adaptive_assist/evaluation/excitation.py` | Defines the frequency/inertia/disturbance grid, recovery metric, fixed-model orchestration, result types, and controller summaries. |
+| `src/adaptive_assist/evaluation/excitation_config.py` | Strictly loads the versioned excitation robustness JSON. |
+| `src/adaptive_assist/evaluation/excitation_logging.py` | Writes deterministically ordered excitation summaries to an explicit CSV path. |
 | `scripts/check_environment.py` | Uses the standard library to report environment details and required-file presence. |
 | `scripts/run_free_joint_demo.py` | Runs and prints the current constant-assistive-torque demonstration through the public model API. |
 | `scripts/run_open_loop_experiment.py` | Loads the nominal scenario, runs it, prints metrics, and optionally requests CSV export. |
@@ -321,6 +369,7 @@ flowchart TD
 | `scripts/compare_baseline_controllers.py` | Compares unsupervised baselines, then both controllers with and without identical supervisor limits. |
 | `scripts/run_safety_supervisor_demo.py` | Demonstrates torque clipping and prints intervention metrics and one example. |
 | `scripts/run_robustness_sweep.py` | Runs the configured supervised or unsupervised mismatch sweep and optionally exports summary CSV. |
+| `scripts/run_excitation_robustness.py` | Runs the configured supervised or unsupervised excitation grid and optionally exports summary CSV. |
 | `scripts/compare_open_loop_impedance.py` | Runs open-loop and impedance assistance under equivalent scenario conditions. |
 | `tests/test_joint_dynamics.py` | Tests physical signs, torque composition, inertia response, validation, integration, determinism, and immutability. |
 | `tests/test_experiment_reference.py` | Tests constant and sinusoidal references, analytic kinematics, determinism, and invalid values. |
@@ -342,6 +391,11 @@ flowchart TD
 | `tests/test_robustness_config.py` | Tests strict sweep configuration, factors, parameter names, and combined-case validation. |
 | `tests/test_robustness_evaluation.py` | Tests scaling, nominal-model isolation, fairness, deterministic execution, metrics, and both supervision modes. |
 | `tests/test_robustness_logging.py` | Tests optional summary CSV contents and deterministic row ordering. |
+| `tests/test_torque_signals.py` | Tests constant/pulse boundaries, validation, immutability, runner injection, supervision, and constant-scenario compatibility. |
+| `tests/test_excitation_config.py` | Tests strict excitation-grid configuration and invalid values or profiles. |
+| `tests/test_excitation_metrics.py` | Tests peak error and immediate, delayed, interrupted, absent, and boundary recovery behavior. |
+| `tests/test_excitation_evaluation.py` | Tests the 72-run grid, analytic references, nominal-model isolation, fairness, metrics, modes, and determinism. |
+| `tests/test_excitation_logging.py` | Tests optional excitation CSV content and deterministic row ordering. |
 | `tests/test_package.py` | Tests package import/version and the module status entry point in a subprocess. |
 
 `src/adaptive_assist/py.typed` is not Python code; it is the PEP 561 marker that
@@ -405,6 +459,19 @@ The evaluation layer preserves two distinct parameter roles:
   corresponding case. Impedance never receives a model object or plant
   parameters.
 
+The excitation layer keeps the same ownership and adds a time-varying input:
+
+- `ExcitationCase.inertia_scale_factor` changes only the actual scenario's
+  inertia; `nominal_controller_model_parameters` stays fixed for computed torque
+  and remains `None` for impedance.
+- `ExcitationCase.disturbance_signal` is evaluated by the experiment runner at
+  `time_s` and becomes `JointTorques.disturbance_torque_n_m`.
+- Neither `JointController.compute()` signature nor either controller law
+  includes the disturbance signal.
+- Corresponding controllers share the same `ExcitationCase`, actual
+  `ScenarioConfig`, reference, disturbance signal, timing, gains, and safety
+  limits.
+
 ## One simulation step
 
 For `model.step(state, torques, time_step_s)`:
@@ -434,6 +501,7 @@ at `duration_s` without stepping beyond the configured duration.
 
 Within a supervised closed-loop step, the runner calls
 `controller.compute()`, then `SafetySupervisor.apply()`, then
+evaluates any optional `TorqueSignal`, then calls
 `model.angular_acceleration_rad_s2()` with the resolved `JointTorques`. It
 records the sample and calls `model.step()` only when another timestamp remains.
 At the final sample, the command and acceleration are observations at
@@ -455,6 +523,10 @@ At the final sample, the command and acceleration are observations at
 | Robustness factors, parameters, or input references | `configs/robustness/model_mismatch_sweep.json` | `evaluation/config.py`, config tests, and `docs/robustness_evaluation.md` |
 | Actual-parameter scaling or sweep orchestration | `src/adaptive_assist/evaluation/robustness.py` | Evaluation tests and ADR 0006 |
 | Robustness summary CSV schema | `src/adaptive_assist/evaluation/logging.py` | Logging tests and robustness documentation |
+| Excitation grid, pulse, or recovery values | `configs/robustness/excitation_disturbance_sweep.json` | `evaluation/excitation_config.py`, config tests, and `docs/excitation_robustness.md` |
+| Deterministic torque-signal behavior | `src/adaptive_assist/experiments/torque.py` | `tests/test_torque_signals.py` and runner integration |
+| Excitation case orchestration or recovery semantics | `src/adaptive_assist/evaluation/excitation.py` | Excitation evaluation/metric tests and ADR 0007 |
+| Excitation summary CSV schema | `src/adaptive_assist/evaluation/excitation_logging.py` | Excitation logging tests and documentation |
 | Reference behavior | `src/adaptive_assist/experiments/reference.py` | Reference tests and JSON reference schema |
 | Gravity, passive, or net dynamics equations | `src/adaptive_assist/dynamics/joint.py` → torque methods and `angular_acceleration_rad_s2()` | Model documentation, ADR consequences, physical-behavior tests |
 | Numerical integration | `src/adaptive_assist/dynamics/joint.py` → `step()` | Integration tests, model documentation, ADR 0001 |
@@ -462,6 +534,7 @@ At the final sample, the command and acceleration are observations at
 | Impedance demonstration or comparison output | `scripts/run_impedance_experiment.py`, `scripts/compare_open_loop_impedance.py` | Tracking scenario, gain configuration, comparison test |
 | Computed-torque demonstration or three-way comparison | `scripts/run_computed_torque_experiment.py`, `scripts/compare_baseline_controllers.py` | Both gain configurations and computed-torque integration tests |
 | Model-mismatch evaluation | Construct perturbed actual scenarios only through `evaluation/robustness.py` | Keep computed-torque nominal parameters fixed; read `tests/test_robustness_evaluation.py` |
+| Frequency/inertia/disturbance evaluation | Construct cases through `evaluation/excitation.py` | Keep gains, limits, amplitude, and computed-torque nominal model fixed; read `tests/test_excitation_evaluation.py` |
 | Open-loop execution order | `src/adaptive_assist/experiments/runner.py` | Runner tests, records, experiment documentation |
 | Closed-loop torque connection | `src/adaptive_assist/experiments/runner.py` → `run_closed_loop_experiment()` | Closed-loop runner tests and safety-boundary documentation |
 | Requested/applied command records | `src/adaptive_assist/experiments/records.py` | Runner, CSV, safety metrics, and final-sample convention |
@@ -499,10 +572,13 @@ Read these closely before changing behavior:
   `tests/test_safety_*.py`;
 - `src/adaptive_assist/evaluation/`, `docs/robustness_evaluation.md`, and
   `tests/test_robustness_*.py`;
+- `docs/excitation_robustness.md`, `tests/test_excitation_*.py`, and
+  `tests/test_torque_signals.py`;
 - `configs/scenarios/nominal_open_loop.json`;
 - `configs/scenarios/nominal_tracking.json` and
   both files under `configs/controllers/`;
 - `configs/robustness/model_mismatch_sweep.json`;
+- `configs/robustness/excitation_disturbance_sweep.json`;
 - `scripts/run_free_joint_demo.py`; and
 - `scripts/run_open_loop_experiment.py`.
 
@@ -526,7 +602,8 @@ validated actual `JointParameters`; it should not change controller-owned
 nominal parameters. A future residual policy will sit upstream of the existing
 `SafetySupervisor`, and robustness evaluation can reuse the same case,
 experiment, and summary path to compare it with the fixed classical baselines.
-Neither capability is implemented now.
+Deterministic excitation and pulse evaluation is implemented; domain
+randomization and residual learning are not.
 
 ## Planned future architecture
 
@@ -535,9 +612,10 @@ The following diagram summarizes the plan documented in
 impedance controller, and computed-torque controller exist today. State
 estimation, MPC, learned policies, domain randomization, advanced or real-world
 safety, external plant adapters, and broader experiment tracking remain planned.
-Deterministic model-mismatch evaluation is implemented; its configured factors
-are not a probability distribution. The current safety supervisor is limited to
-deterministic scalar-simulation command constraints. The future learned
+Deterministic model-mismatch and excitation/disturbance evaluations are
+implemented; their configured values are not probability distributions. The
+current safety supervisor is limited to deterministic scalar-simulation command
+constraints. The future learned
 residual will modify the upstream requested command and will not bypass this
 same supervisor before plant actuation.
 
@@ -565,6 +643,7 @@ flowchart LR
     J[Computed-torque controller<br/>IMPLEMENTED] -. model-based baseline .-> C
     K[Finite/state checks, torque clipping, and fallback<br/>IMPLEMENTED] -. current scope .-> E
     L[Deterministic actual-plant mismatch sweeps<br/>IMPLEMENTED] -. evaluates .-> H
+    M[Deterministic excitation and pulse sweeps<br/>IMPLEMENTED] -. evaluates .-> H
 ```
 
 ## Glossary
@@ -596,6 +675,12 @@ flowchart LR
   model.
 - **Model mismatch:** A deterministic difference between fixed nominal
   controller parameters and actual simulated plant parameters.
+- **Torque signal:** A deterministic `time_s -> torque_n_m` input evaluated by
+  the experiment runner, not by a controller.
+- **Pulse disturbance:** A `PulseTorqueSignal` active on the half-open interval
+  `[start, end)` and zero outside it.
+- **Recovery time:** Time after pulse end until sampled absolute tracking error
+  enters the configured inclusive band and completes the configured dwell.
 - **One-at-a-time sweep:** Evaluation that changes one parameter while all
   other actual-plant parameters remain nominal.
 - **RMSE degradation fraction:** Case RMSE minus a controller's own nominal
@@ -659,6 +744,15 @@ python scripts/run_robustness_sweep.py --unsupervised
 # Export only deterministic summary rows when explicitly requested
 python scripts/run_robustness_sweep.py --csv robustness_summary.csv
 
+# Run the safety-aware frequency/inertia/disturbance grid
+python scripts/run_excitation_robustness.py
+
+# Run the separately labelled raw-controller excitation grid
+python scripts/run_excitation_robustness.py --unsupervised
+
+# Export excitation summary rows only to an explicit path
+python scripts/run_excitation_robustness.py --csv excitation_summary.csv
+
 # Retained focused two-way comparison
 python scripts/compare_open_loop_impedance.py
 
@@ -708,6 +802,12 @@ python scripts/check_environment.py
   limits remain fixed.
 - [ ] Supervised and unsupervised robustness results are labelled and analyzed
   separately, without uncertainty or real-world claims.
+- [ ] Disturbance signals enter through runner orchestration, not controller or
+  plant policy, and pulse boundaries remain explicitly documented.
+- [ ] Excitation cases keep amplitude, gains, limits, timing, human torque, and
+  the computed-torque nominal model fixed across corresponding comparisons.
+- [ ] Recovery reporting distinguishes no disturbance, successful recovery,
+  and failure to recover before the experiment ends.
 - [ ] Scenario files match the strict documented schema and contain no implicit
   randomness.
 - [ ] Records, logging, and metrics remain controller-independent.
