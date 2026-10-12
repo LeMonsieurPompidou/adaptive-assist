@@ -15,7 +15,9 @@ metrics, and test scenarios so experimental differences can be traced to
 assistive-torque generation rather than the surrounding infrastructure.
 The implemented deterministic robustness layer now repeats those fixed-gain
 comparisons while varying actual plant parameters and holding the
-computed-torque nominal model fixed.
+computed-torque nominal model fixed. The implemented excitation extension also
+varies sinusoidal frequency and applies signed deterministic disturbance pulses
+while preserving the same model-ownership and fairness rules.
 
 ## One-degree-of-freedom abstraction
 
@@ -45,8 +47,10 @@ The implemented experiment layer loads a versioned scenario containing these
 values, evaluates a constant or sinusoidal `JointReference`, executes predefined
 open-loop torques, and produces immutable time-series samples and deterministic
 metadata. It can explicitly export samples to CSV and currently calculates
-tracking RMSE and peak assistive torque. These are infrastructure metrics, not
-controller benchmark results.
+tracking RMSE, peak absolute tracking error, and peak assistive torque.
+Closed-loop execution can optionally evaluate a deterministic `TorqueSignal`
+for time-varying disturbance torque without exposing the signal to the
+controller. These are infrastructure metrics, not physical-validation results.
 
 The implemented impedance-controller inputs are desired and actual joint angle
 and angular velocity. The computed-torque controller additionally uses desired
@@ -118,7 +122,11 @@ The initial evaluation protocol will include:
   constraint;
 - **robustness:** deterministic relative tracking-RMSE degradation under
   one-at-a-time plant/model parameter variation (implemented for inertia, mass,
-  centre-of-mass distance, damping, and stiffness); and
+  centre-of-mass distance, damping, and stiffness), plus fixed-grid excitation
+  and signed-pulse evaluation focused on inertia (implemented);
+- **disturbance recovery time:** fixed-step entry into an absolute tracking-error
+  tolerance for a continuous configured sample dwell after pulse end
+  (implemented for deterministic pulse cases); and
 - **repeatability:** variation across controlled random seeds where applicable.
 
 The implemented metrics have fixed code-level definitions and are used by the
@@ -201,9 +209,12 @@ The project does not currently pursue:
 6. **Deterministic robustness evaluation — complete for the current scope:**
    fixed-gain one-at-a-time model mismatch at 0.8, 1.0, and 1.2 times nominal,
    one moderate combined case, supervised/unsupervised interpretation, and
-   summary CSV export. Stochastic uncertainty and disturbance suites remain
-   planned.
-7. **Residual learning:** bounded residual-policy design, training, and
+   summary CSV export.
+7. **Excitation and disturbance robustness — complete for the current scope:**
+   four fixed reference frequencies, three actual-inertia factors, zero and
+   signed-pulse disturbances, peak-error/recovery summaries, and supervised and
+   unsupervised interpretation. Stochastic uncertainty remains planned.
+8. **Residual learning:** bounded residual-policy design, training, and
    evaluation with reproducible configurations. No learned policy exists yet.
-8. **Sim-to-real assessment:** decide whether evidence justifies an isolated,
+9. **Sim-to-real assessment:** decide whether evidence justifies an isolated,
    non-human bench experiment and document the transfer risks and protocol.

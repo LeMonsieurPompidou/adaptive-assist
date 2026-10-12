@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "scenario_config_path": "configs/scenarios/nominal_tracking.json",
+  "impedance_controller_config_path": "configs/controllers/impedance_baseline.json",
+  "computed_torque_controller_config_path": "configs/controllers/computed_torque_baseline.json",
+  "safety_limits_config_path": "configs/safety/nominal_limits.json",
+  "safety_supervision_enabled": true,
+  "reference_frequencies_hz": [0.25, 0.5, 0.75, 1.0],
+  "inertia_scale_factors": [0.8, 1.0, 1.2],
+  "reference_amplitude_rad": 0.2,
+  "reference_offset_rad": 0.0,
+  "disturbance_profiles": ["none", "positive_pulse", "negative_pulse"],
+  "disturbance_pulse_magnitude_n_m": 1.0,
+  "disturbance_start_time_s": 2.0,
+  "disturbance_duration_s": 0.25,
+  "recovery_tolerance_rad": 0.05,
+  "recovery_dwell_duration_s": 0.25
+}

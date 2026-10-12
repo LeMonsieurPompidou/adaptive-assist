@@ -7,8 +7,9 @@ under "Currently implemented" are working software. A limited deterministic
 safety supervisor for the scalar simulation is also implemented. State
 estimation, MPC, learning, stochastic domain randomization, advanced safety
 methods, broader experiment tracking, external simulation, and hardware
-integration remain planned. A focused deterministic model-mismatch evaluation
-layer is implemented outside those runtime components.
+integration remain planned. Focused deterministic model-mismatch and
+excitation/disturbance evaluation layers are implemented outside those runtime
+components.
 
 ## Implemented open-loop flow
 
@@ -85,6 +86,29 @@ evaluation layer constructs actual plant cases and summarizes existing
 experiment results; it does not change dynamics, controller laws, supervision,
 or fixed-step execution. Computed torque retains one fixed nominal model across
 all cases, while impedance receives no model parameters.
+
+## Implemented excitation-evaluation flow
+
+```mermaid
+flowchart LR
+    A[Excitation JSON] --> B[Frequency x inertia x disturbance cases]
+    B --> C[SinusoidalReference]
+    B --> D[TorqueSignal]
+    E[Fixed nominal model] --> F[Computed torque only]
+    C --> G[Generic closed-loop runner]
+    D --> G
+    F --> G
+    H[Impedance controller] --> G
+    I[Optional unchanged supervisor] --> G
+    J[Actual inertia-scaled plant] --> G
+    G --> K[ExperimentResult]
+    K --> L[ExcitationRunResult and CSV]
+```
+
+The runner evaluates the optional disturbance signal at each sample and places
+its output only in `JointTorques`. Controllers remain unaware of disturbance
+profiles. Existing scenarios continue to use their constant disturbance when
+no signal is supplied.
 
 ## Planned full system flow
 
@@ -166,10 +190,11 @@ provides explicit standard-library CSV export, tracking and torque metrics, and
 simulation-supervisor intervention metrics outside decision logic.
 
 The implemented evaluation layer composes this API into deterministic
-one-at-a-time actual-plant mismatch sweeps. It retains full `ExperimentResult`
-objects, adds case identity and controller-independent summaries, and can write
-an explicitly requested standard-library CSV. Domain randomization, uncertainty
-modeling, and residual learning remain planned.
+one-at-a-time actual-plant mismatch sweeps and frequency/inertia/disturbance
+grids. It retains full `ExperimentResult` objects, adds case identity and
+controller-independent summaries, and can write an explicitly requested
+standard-library CSV. Domain randomization, stochastic uncertainty modeling,
+and residual learning remain planned.
 
 State estimates, richer controller components and safety events, additional
 metrics and provenance, and an experiment-tracking service remain planned.
@@ -194,6 +219,9 @@ The repository currently contains only:
 - deterministic model-mismatch evaluation for both fixed-gain baselines, with
   separate actual and nominal parameters, one combined case, supervised and
   unsupervised modes, robustness summaries, tests, and optional CSV export;
+- deterministic excitation robustness across four frequencies, three actual
+  inertia factors, and zero/positive/negative pulse disturbances, including
+  peak-error and fixed-step recovery metrics;
 - packaging and development-tool configuration;
 - a standard-library environment checker;
 - continuous integration; and

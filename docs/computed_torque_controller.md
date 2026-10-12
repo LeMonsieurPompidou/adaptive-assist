@@ -164,3 +164,6 @@ must not be interpreted as global controller rankings or validation evidence.
 `python scripts/run_robustness_sweep.py` evaluates the same fixed gains under
 the documented deterministic mismatch cases; see
 [the robustness evaluation guide](robustness_evaluation.md).
+`python scripts/run_excitation_robustness.py` retains that fixed nominal model
+while varying actual inertia, reference frequency, and external deterministic
+pulses; see [the excitation robustness guide](excitation_robustness.md).

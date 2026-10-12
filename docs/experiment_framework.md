@@ -21,6 +21,9 @@ experiments preserve configured human and disturbance torques while replacing
 configured assistive torque with the selected `JointController` request. An
 optional independent supervisor resolves that request before plant evaluation.
 Without a supervisor, direct pass-through remains explicit and deterministic.
+Closed-loop callers may optionally provide a deterministic `TorqueSignal`; its
+time-varying output replaces only the configured disturbance-torque value and
+does not enter the controller interface.
 
 ## Implemented open-loop flow
 
@@ -53,6 +56,11 @@ Two immutable implementations exist:
 - `SinusoidalReference` analytically calculates angle, angular velocity, and
   angular acceleration from amplitude, frequency, offset, and time. It does not
   use numerical differentiation.
+
+The analogous scalar `TorqueSignal` protocol supports `ConstantTorqueSignal`
+and `PulseTorqueSignal`. A pulse is active on `[start, end)` and zero outside
+that interval. Existing scenarios remain constant-torque configurations; when
+no signal is supplied, runner behavior is unchanged.
 
 ## Scenario configuration
 
@@ -139,7 +147,9 @@ rules. At every sample it evaluates the reference, calls
 `controller.compute(state, reference)`, optionally calls
 `safety_supervisor.apply(state, requested_torque)`, constructs `JointTorques`
 from the configured human/disturbance torques and resolved applied assistive
-torque, then records and advances the same public plant API. Controller and
+torque, then records and advances the same public plant API. When an optional
+disturbance signal is supplied, the runner evaluates it at the current timestamp
+and uses that value instead of the scenario's constant disturbance. Controller and
 supervisor evaluation also occur at the final recorded sample, but no
 integration follows that sample.
 
@@ -183,6 +193,8 @@ controller logic:
 
 - `trajectory_tracking_rmse_rad()` computes root-mean-square actual-minus-
   reference angle error in radians.
+- `peak_absolute_tracking_error_rad()` computes the maximum absolute recorded
+  actual-minus-reference angle error.
 - `peak_assistive_torque_n_m()` computes the largest absolute recorded
   **applied** assistive torque in newton metres.
 - `peak_requested_assistive_torque_n_m()` computes the corresponding upstream
@@ -195,6 +207,8 @@ controller logic:
 All reject an empty result with `ValueError`. The separate implemented
 [robustness evaluation layer](robustness_evaluation.md) composes these metrics
 into deterministic model-mismatch summaries and adds relative RMSE degradation.
+The [excitation robustness layer](excitation_robustness.md) composes the same
+runner and metrics with deterministic pulse-recovery evaluation.
 Estimated human effort, actuator energy, torque-rate smoothness, and richer
 constraint-violation metrics remain planned.
 
@@ -221,6 +235,8 @@ The implemented robustness runner also composes
 `run_closed_loop_experiment()` rather than specializing it. Perturbed
 `ScenarioConfig` values describe only the actual plant; the computed-torque
 nominal model remains fixed outside the generic experiment layer.
+The excitation runner uses the same path with an optional `TorqueSignal`; it
+does not introduce a controller-specific or disturbance-specific dynamics loop.
 
 ## Limitations
 

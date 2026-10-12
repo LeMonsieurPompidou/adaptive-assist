@@ -161,6 +161,7 @@ next state is feasible. No real-world safety validation has been performed.
 python scripts/run_safety_supervisor_demo.py
 python scripts/compare_baseline_controllers.py
 python scripts/run_robustness_sweep.py
+python scripts/run_excitation_robustness.py
 ```
 
 The first command intentionally exercises torque clipping. The comparison uses
@@ -168,3 +169,5 @@ one scenario and one limits file for both controllers, with and without
 supervision, to show the effect of the independent command constraint.
 The robustness sweep reuses the same illustrative limits for every supervised
 parameter case and provides an explicitly separate `--unsupervised` mode.
+The excitation sweep does the same across frequency, inertia, and deterministic
+pulse cases; its disturbance torque is external to assistive-torque clipping.

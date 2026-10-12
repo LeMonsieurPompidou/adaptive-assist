@@ -175,11 +175,13 @@ summaries and CSV ordering.
 
 This first evaluation is one scalar tracking scenario with one-at-a-time
 0.8/1.0/1.2 factors and one combined case. It does not define uncertainty
-distributions, coupled uncertainty surfaces, disturbance robustness, parameter
-identification error ranges, or real-world behavior. The nominal
-scenario has zero human and disturbance torque. The selected ranges are enough
-to expose deterministic sensitivity in the current scenario but do not define
-the uncertainty envelope for future learning.
+distributions, coupled uncertainty surfaces, parameter-identification error
+ranges, or real-world behavior. The nominal scenario has zero human and
+disturbance torque. The selected ranges expose deterministic sensitivity but do
+not define the uncertainty envelope for future learning. The subsequent
+[excitation robustness evaluation](excitation_robustness.md) extends the
+inertia question across frequency and signed deterministic pulses without
+introducing stochastic uncertainty.
 
 Future work should justify broader deterministic cases or uncertainty models
 before domain randomization. These results motivate a clearly specified
